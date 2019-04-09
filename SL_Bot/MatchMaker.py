@@ -31,6 +31,7 @@ VERSION = "1.1.2"
 
 AUTHOR_ID = 90043934247501824
 SETTINGS_FILE = 'settings.json'
+TOKEN_FILE = 'token.txt'
 
 MAINCHANNEL = ''                  # right click on channel and select "copy ID"
 PREFIX = "!"
@@ -730,7 +731,7 @@ async def on_ready():
         
         initialized = True
         
-        _print(server.id,'Add old roles to timeout check')
+        _print("main",'Add old roles to timeout check')
         for server in bot.guilds:
             if (not get_setting(server.id, 'MAINCHANNEL') == get_setting('DEFAULTS', 'MAINCHANNEL')) and is_setup(server.id):
                 
@@ -2166,7 +2167,7 @@ async def debug(ctx):
 
 if __name__ == '__main__':      
     try:
-        token = open("token.txt","r").readline()
+        token = open(TOKEN_FILE,"r").readline()
         
         bot.run(token)
     except Exception as e:
