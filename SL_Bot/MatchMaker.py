@@ -537,7 +537,7 @@ async def checkTimeout(server):
         
         if initialized and is_setup(server) and (not get_setting(server, 'MAINCHANNEL') == get_setting('DEFAULTS', 'MAINCHANNEL')):
             if len(list(SERVER_VARS[server].singlesDict)) + len(list(SERVER_VARS[server].doublesDict)) > 0:
-                _print(server, "checking for role timeouts", log=False)
+                _print(server, "checking for role timeouts:", log=False)
                 
                 srvr = bot.get_guild(server)
                 
@@ -545,7 +545,7 @@ async def checkTimeout(server):
                     difference = datetime.datetime.utcnow() - SERVER_VARS[server].singlesDict[member]
                     difference -= datetime.timedelta(microseconds=difference.microseconds)
                     user = get(srvr.members, id=member)
-                    _print(server, str(user) + " 1vs1 (" + str(difference) + "/" + str(str(datetime.timedelta(seconds=get_setting(server, 'ROLE_TIMEOUT')))) + ")", log=False)
+                    _print(server, "| " + str(user) + " 1vs1 (" + str(difference) + "/" + str(str(datetime.timedelta(seconds=get_setting(server, 'ROLE_TIMEOUT')))) + ")", log=False)
                     if difference.total_seconds() > get_setting(server, 'ROLE_TIMEOUT'):
                         
                         role = get(srvr.roles, name=str(get_setting(server, 'ROLE_1VS1')))

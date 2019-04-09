@@ -14,7 +14,8 @@
         "ROLE_2VS2": "2vs2test",
         "PREFIX": "?",
         "REACTION_1VS1": "\ud83d\udc40",
-        "CHECK_INTERVAL_REPOST": 5
+        "CHECK_INTERVAL_REPOST": 5,
+        "CHECK_INTERVAL_ROLES": 5
     },
     "DEFAULTS": {
         "MESSAGE_CONTENT": "Reagiert mit :ok_hand: f\u00fcr 1vs1, :joy: f\u00fcr 2vs2. \nReagiert erneut, um die Rollen wieder zu entfernen.\nAlternativ k\u00f6nnt ihr euch die Rollen auch mit $1vs1 bzw $2vs2 geben und nehmen. \nnach 1 Stunde werden die Rollen automatisch entfernt.\n",
