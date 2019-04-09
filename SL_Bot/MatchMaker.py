@@ -34,6 +34,7 @@ SETTINGS_FILE = 'settings.json'
 TOKEN_FILE = 'token.txt'
 
 MAINCHANNEL = ''                  # right click on channel and select "copy ID"
+ACTIVE_CHANNELS = {}
 PREFIX = "!"
 
 ##Repeated message##
@@ -155,7 +156,7 @@ def init_settings():
     file with default values if it doesnt already exist.
     '''
     
-    global PREFIX, MAINCHANNEL, MESSAGE_CONTENT, MESSAGE_INTERVAL, MESSAGE_REPOST_TIME, REACTION_1VS1, REACTION_2VS2
+    global PREFIX, MAINCHANNEL, ACTIVE_CHANNELS, MESSAGE_CONTENT, MESSAGE_INTERVAL, MESSAGE_REPOST_TIME, REACTION_1VS1, REACTION_2VS2
     global ROLE_1VS1, ROLE_2VS2, ROLE_TIMEOUT, CHECK_INTERVAL_ROLES, CHECK_INTERVAL_REPOST, SETTINGS
     
     #check if config file exists
@@ -167,6 +168,7 @@ def init_settings():
             "DEFAULTS": {
                 'PREFIX': PREFIX,
                 'MAINCHANNEL': MAINCHANNEL,
+                'ACTIVE_CHANNELS': ACTIVE_CHANNELS,
                 'MESSAGE_CONTENT': MESSAGE_CONTENT,
                 'MESSAGE_INTERVAL' : MESSAGE_INTERVAL,
                 'MESSAGE_REPOST_TIME': MESSAGE_REPOST_TIME,
@@ -212,8 +214,20 @@ def update_settings(_server, key, value, customCmd=False, customDmCmd=False):
             newEntry = {}
             data[server] = newEntry
         
+        #check for active channel changes
+        if key == "ACTIVE_CHANNELS":
+            if 'ACTIVE_CHANNELS' not in list(data[server]):
+                newEntry = {}
+                data[server]['ACTIVE_CHANNELS'] = newEntry
+            
+            if value in data[server]['ACTIVE_CHANNELS']:
+                data[server]['ACTIVE_CHANNELS'].pop(value, None)
+            else:   
+                data[server]['ACTIVE_CHANNELS'].append(value)
+            
+        
         #check if new command was added
-        if customCmd:
+        elif customCmd:
             # add new setting to data, if missing
             if 'COMMANDS' not in list(data[server]):
                 newEntry = {}
@@ -2145,7 +2159,6 @@ async def reloadSettings(ctx):
         await message.delete()
     else:    
         await message.delete()
-
 
 @bot.command()
 async def debug(ctx):

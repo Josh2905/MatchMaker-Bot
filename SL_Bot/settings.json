@@ -30,6 +30,7 @@
         "ROLE_1VS1": "",
         "MESSAGE_INTERVAL": 20,
         "MAINCHANNEL": "",
+        "ACTIVE_CHANNELS": {},
         "ROLE_TIMEOUT": 1800,
         "COMMANDS": {}
     },
