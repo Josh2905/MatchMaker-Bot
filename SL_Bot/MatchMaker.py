@@ -338,6 +338,14 @@ def is_custom_dmcommand(cmd, server):
             return True
     return False
 
+def get_server_vars():
+    '''Acces to SERVER_VARS for Cogs.'''
+    return SERVER_VARS
+
+def set_server_vars(server, key, value):
+    '''Acces to SERVER_VARS for Cogs.'''
+    SERVER_VARS[server].key = value
+
 async def notify(channel, message, timeout=3):
     '''Send a message to the channel and delete it after a delay.
     
@@ -2182,6 +2190,8 @@ if __name__ == '__main__':
     try:
         token = open(TOKEN_FILE,"r").readline()
         
+        #bot.add_cog(CoinTournament(bot))
+        bot.load_extension("Cogs.CoinTournament")
         bot.run(token)
     except Exception as e:
         print(traceback.print_exc())
