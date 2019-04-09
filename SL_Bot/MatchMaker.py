@@ -2125,8 +2125,26 @@ async def restart(ctx):
         #bot.loop.close()
         #await bot.logout()
         await bot.close()
-        
-    await message.delete()
+    else:    
+        await message.delete()
+
+@bot.command()
+async def reloadSettings(ctx):
+    '''Command to reload the settings file.
+    Only Creator has permissions for this.
+    
+    :param ctx: context of command call
+    '''
+    
+    user = ctx.message.author
+    message = ctx.message
+    
+    if await checkPermissions(user, message.channel, creator=True):
+        init_settings()
+        await message.delete()
+    else:    
+        await message.delete()
+
 
 @bot.command()
 async def debug(ctx):
