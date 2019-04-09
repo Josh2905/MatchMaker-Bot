@@ -2,7 +2,7 @@
 Created on 25.02.2019
 
 @author: Joshua Esselmann
-@version: 1.1.2
+@version: 1.2.0
 '''
 
 import asyncio
@@ -21,13 +21,12 @@ from logging.handlers import TimedRotatingFileHandler
 import discord
 from discord.ext import commands
 from discord.utils import get
-from cgi import maxlen
 
 
 ####################################################################################################
 ##DEFAULTS##
 ####################################################################################################
-VERSION = "1.1.2"
+VERSION = "1.2.0"
 
 AUTHOR_ID = 90043934247501824
 SETTINGS_FILE = 'settings.json'
@@ -72,7 +71,6 @@ DM_COMMANDS = {}
 # Logger
 logger = logging.getLogger('discord')
 logger.setLevel(logging.INFO)
-#handler = logging.FileHandler(filename=logFileName, encoding='utf-8', mode='w')
 handler = logging.handlers.TimedRotatingFileHandler("SLBot.log",'midnight', 1, 5, 'utf-8')
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 logger.addHandler(handler)
@@ -93,6 +91,7 @@ def get_prefix(bot, message):
 
 bot = commands.Bot(command_prefix=get_prefix)
 bot.remove_command('help')
+
 class serverNode():
     '''This class is used to store variables for each connected Server.'''
     
@@ -323,14 +322,6 @@ def is_custom_dmcommand(cmd, server):
         if command in list(cmdDict):
             return True
     return False
-
-def get_server_vars():
-    '''Acces to SERVER_VARS for Cogs.'''
-    return SERVER_VARS
-
-def set_server_vars(server, key, value):
-    '''Acces to SERVER_VARS for Cogs.'''
-    SERVER_VARS[server].key = value
 
 async def notify(channel, message, timeout=3):
     '''Send a message to the channel and delete it after a delay.
@@ -693,6 +684,7 @@ async def on_ready():
         _print("main", 'Logged in as')
         _print("main", bot.user.name)
         _print("main", bot.user.id)
+        _print("main", 'Version: ' + str(VERSION))
         _print("main", '------')
         
         init_settings()
