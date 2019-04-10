@@ -242,7 +242,7 @@ class MatchMaking(commands.Cog):
                         difference -= datetime.timedelta(microseconds=difference.microseconds)
                         user = get(srvr.members, id=member)
                         self.controller._print(server, str(user) + " 2vs2 (" + str(difference) + "/" + str(str(datetime.timedelta(seconds=self.controller.get_setting(server, 'ROLE_TIMEOUT')))) + ")", log=False, cog=self.COG_NAME)
-                        if difference.total_seconds() > self.controllerget_setting(server, 'ROLE_TIMEOUT'):
+                        if difference.total_seconds() > self.controller.get_setting(server, 'ROLE_TIMEOUT'):
                             
                             role = get(srvr.roles, name=str(self.controller.get_setting(server, 'ROLE_2VS2')))
                             
