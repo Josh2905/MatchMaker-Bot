@@ -310,7 +310,19 @@ class Controller(commands.Cog):
         if True:
             pass
         
-    
+    async def notify(self, channel, message, timeout=3):
+        '''Send a message to the channel and delete it after a delay.
+        
+        :param channel: Channel to be messaged
+        :param message: Message to be sent
+        :param timeout: Seconds after message will be removed
+        '''
+        msg = await channel.send(message)
+        await asyncio.sleep(timeout)
+        try:
+            await msg.delete()
+        except:
+            pass
     
     #===============================================================================
     # looped routines    
@@ -500,7 +512,75 @@ class Controller(commands.Cog):
                 # await message.delete()
                 return
     
-    
+    @commands.Cog.listener()
+    async def on_reaction_add(self, reaction, user):
+        '''Called, when reactions are added.
+        
+        Handles setting of new reactions after performing the set command.
+        '''
+        
+        if self.initialized:    
+            server = reaction.message.guild.id
+            
+            # ignore own reactions
+            if user == self.bot.user:
+                return
+                      
+            # handling of change reactions command.
+            if self.SERVER_VARS[server].msg1vs1:
+                if reaction.message.id == self.SERVER_VARS[server].msg1vs1.id :
+                    if await self.checkPermissions(user, reaction.message.channel):
+                        if reaction.emoji in self.bot.emojis or isinstance(reaction.emoji, str):
+                            self._print(server, "updating 1vs1 reaction", cog=self.COG_NAME)
+                            
+                            # handle custom emoji
+                            if not isinstance(reaction.emoji, str):
+                                emoji = reaction.emoji.name + ":" + str(reaction.emoji.id)
+                            else:
+                                emoji = reaction.emoji
+                            
+                            # update in settings
+                            self.update_settings(server, 'REACTION_1VS1', emoji)
+                            
+                            await self.SERVER_VARS[server].msg1vs1.delete()
+                            await self.notify(self.SERVER_VARS[server].msg1vs1.channel, "{} die 1vs1 Reaktion wurde aktualisiert. ".format(user.mention) + str(reaction.emoji))
+                            channel = self.bot.get_channel(self.get_setting(server, 'MAINCHANNEL'))
+                            
+                            matchMaker = self.bot.get_cog("MatchMaking")
+                            await self.matchMaker.postMessage(channel)
+                            self.SERVER_VARS[server].msg1vs1 = False
+                        else:
+                            await self.notify(reaction.message.channel, "{} ich habe leider keinen Zugriff auf dieses Emoji.".format(user.mention))
+                    else:
+                        await asyncio.sleep(0.5)            
+                        await reaction.message.remove_reaction(reaction.emoji, user)
+            elif self.SERVER_VARS[server].msg2vs2:
+                if reaction.message.id == self.SERVER_VARS[server].msg2vs2.id:
+                    if await self.checkPermissions(user, reaction.message.channel):
+                        if reaction.emoji in self.bot.emojis or isinstance(reaction.emoji, str):
+                            self._print(server, "updating 2vs2 reaction", cog=self.COG_NAME)
+                            
+                            # handle custom emoji
+                            if not isinstance(reaction.emoji, str):
+                                emoji = reaction.emoji.name + ":" + str(reaction.emoji.id)
+                            else:
+                                emoji = reaction.emoji
+                            
+                            # update in settings
+                            self.update_settings(server, 'REACTION_2VS2', emoji)
+                            
+                            await self.SERVER_VARS[server].msg2vs2.delete()
+                            await self.notify(self.SERVER_VARS[server].msg2vs2.channel, "{} die 2vs2 Reaktion wurde aktualisiert. ".format(user.mention) + str(reaction.emoji))
+                            channel = self.bot.get_channel(self.get_setting(server, 'MAINCHANNEL'))
+                            
+                            matchMaker = self.bot.get_cog("MatchMaking")
+                            await self.matchMaker.postMessage(channel)
+                            self.SERVER_VARS[server].msg2vs2 = False
+                        else:
+                            await self.notify(reaction.message.channel, "{} ich habe leider keinen Zugriff auf dieses Emoji.".format(user.mention))
+                    else:
+                        await asyncio.sleep(0.5)            
+                        await reaction.message.remove_reaction(reaction.emoji, user)
             
     @commands.command()
     async def testdebug(self, ctx):

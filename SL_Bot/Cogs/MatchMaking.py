@@ -56,20 +56,6 @@ class MatchMaking(commands.Cog):
         else:
             return False
     
-    async def notify(self, channel, message, timeout=3):
-        '''Send a message to the channel and delete it after a delay.
-        
-        :param channel: Channel to be messaged
-        :param message: Message to be sent
-        :param timeout: Seconds after message will be removed
-        '''
-        msg = await channel.send(message)
-        await asyncio.sleep(timeout)
-        try:
-            await msg.delete()
-        except:
-            pass
-    
     async def notifySearch(self, channel, user, role):
         '''Notify a channel that someone is looking for a match.
         
@@ -114,7 +100,7 @@ class MatchMaking(commands.Cog):
                     await user.remove_roles(role)
                 except AttributeError:
                     pass
-                await self.notify(message.channel, "{} du hast nicht mehr die Rolle ".format(user.mention) + str(self.controller.get_setting(server, 'ROLE_1VS1')) + ".", timeout=5)
+                await self.controller.notify(message.channel, "{} du hast nicht mehr die Rolle ".format(user.mention) + str(self.controller.get_setting(server, 'ROLE_1VS1')) + ".", timeout=5)
                 self.controller._print(server, "removed 1vs1 role from " + str(user.name), cog=self.COG_NAME)
             else:
                 # grant user role
@@ -123,7 +109,7 @@ class MatchMaking(commands.Cog):
                 # await notify(message.channel, "{0} du hast nun die Rolle ".format(user.mention) + str(get_setting(server, 'ROLE_1VS1')) + ".")
                 self.controller._print(server, "applied 1vs1 role to " + str(user.name), cog=self.COG_NAME)
         else:
-            await self.notify(message.channel, "{0} diese Rolle existiert nicht mehr. Bitte erneut setzen. (!help)".format(user.mention))
+            await self.controller.notify(message.channel, "{0} diese Rolle existiert nicht mehr. Bitte erneut setzen. (!help)".format(user.mention))
         
     async def doubles(self, user, role, message):
         '''This method adds/removes a role from a discord servber member, informs him of that fact, removes the message together with its own 
@@ -144,7 +130,7 @@ class MatchMaking(commands.Cog):
                     await user.remove_roles(role)
                 except AttributeError:
                     pass
-                await self.notify(message.channel, "{} du hast nicht mehr die Rolle ".format(user.mention) + str(self.controller.get_setting(server, 'ROLE_2VS2')) + ".", timeout=5)
+                await self.controller.notify(message.channel, "{} du hast nicht mehr die Rolle ".format(user.mention) + str(self.controller.get_setting(server, 'ROLE_2VS2')) + ".", timeout=5)
                 self.controller._print(server, "removed 2vs2 role from " + str(user.name), cog=self.COG_NAME)
             else:
                 # grant user role
@@ -153,7 +139,7 @@ class MatchMaking(commands.Cog):
                 # await notify(message.channel, "{} du hast nun die Rolle ".format(user.mention) + str(get_setting(server, 'ROLE_2VS2')) + ".")
                 self.controller._print(server, "applied 2vs2 role to " + str(user.name), cog=self.COG_NAME)
         else:
-            await self.notify(message.channel, "{0} diese Rolle existiert nicht mehr. Bitte erneut setzen. (!help)".format(user.mention))
+            await self.controller.notify(message.channel, "{0} diese Rolle existiert nicht mehr. Bitte erneut setzen. (!help)".format(user.mention))
     
     async def postMessage(self, channel):
         '''Posts the main matchmaking message to the specified channel.
@@ -512,6 +498,62 @@ class MatchMaking(commands.Cog):
             if (message.channel.id == self.controller.get_setting(server, 'MAINCHANNEL')):
                 if message.id in self.SERVER_VARS[server].lastMsgStack:
                     self.SERVER_VARS[server].lastMsgStack.remove(message.id)
+    
+    @commands.Cog.listener()
+    async def on_reaction_add(self, reaction, user):
+        '''Called, when reactions are added.
+        
+        Handles roling of users reacting to the main message.
+        '''
+        
+        if self.initialized:
+            server = reaction.message.guild.id
+            
+            # ignore own reactions
+            if user == self.bot.user:
+                return
+            
+            if reaction.message.channel.id == self.controller.get_setting(server, 'MAINCHANNEL'):
+            
+                # add roles depending on reactions
+                if self.SERVER_VARS[server].activeMessage:
+                    if reaction.message.id == self.SERVER_VARS[server].activeMessage.id:
+                        
+                        await asyncio.sleep(0.5)            
+                        await reaction.message.remove_reaction(reaction.emoji, user)
+                                    
+                        if reaction.emoji == self.controller.get_setting(server, 'REACTION_1VS1'):
+                            role = get(user.guild.roles, name=str(self.controller.get_setting(server, 'ROLE_1VS1')))
+                            await self.singles(user, role, reaction.message)
+                        elif reaction.emoji == self.controller.get_setting(server, 'REACTION_2VS2'):
+                            role = get(user.guild.roles, name=str(self.controller.get_setting(server, 'ROLE_2VS2')))
+                            await self.doubles(user, role, reaction.message)
+                
+            # remove search notification on reaction
+            #=======================================================================
+            # if len(SERVER_VARS[server].searchMessageSinglesDict) + len(SERVER_VARS[server].searchMessageDoublesDict) > 0:
+            #     for usrID in SERVER_VARS[server].searchMessageSinglesDict:
+            #         if user.id == usrID:
+            #             msgID = SERVER_VARS[server].searchMessageSinglesDict[usrID][1]
+            #             if msgID == reaction.message.id:
+            #                 if reaction.emoji == REACTION_CANCEL:
+            #                     role = get(user.guild.roles, name=str(get_setting(server, 'ROLE_1VS1')))
+            #                     await singles(user, role, reaction.message)
+            #                     break
+            #         else:
+            #             await reaction.message.remove_reaction(reaction.emoji, user)
+            #     
+            #     for usrID in SERVER_VARS[server].searchMessageDoublesDict:
+            #         if user.id == usrID:
+            #             msgID = SERVER_VARS[server].searchMessageDoublesDict[usrID][1]
+            #             if msgID == reaction.message.id:
+            #                 if reaction.emoji == REACTION_CANCEL:
+            #                     role = get(user.guild.roles, name=str(get_setting(server, 'ROLE_2VS2')))
+            #                     await doubles(user, role, reaction.message)
+            #                     break
+            #         else:
+            #             await reaction.message.remove_reaction(reaction.emoji, user)
+            #=======================================================================
                 
     @commands.command()
     async def testdebug(self, ctx):
