@@ -20,7 +20,11 @@ class SL_Bot(commands.Bot):
     handler = logging.handlers.TimedRotatingFileHandler("SLBot.log",'midnight', 1, 5, 'utf-8')
     handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
     logger.addHandler(handler)
-    COMMANDS = ["1vs1","2vs2","mainChannel","set","get","reset", "settings", "post", "commands", "help", "version", "restart", "roll", "reloadSettings", "debug"]
+    COMMANDS = ["1vs1","2vs2","mainChannel",
+                "set","get","reset", "settings",
+                "post", "commands", "help", "version",
+                "restart", "roll", "reloadSettings",
+                "debug", "testdebug"]
     
     def is_command(self, cmd):
         '''Return, if a command with this name exists.
@@ -60,8 +64,6 @@ def get_prefix(bot, message):
     else:
         prefix = "!"
     return prefix
-
-
 
 bot = SL_Bot(command_prefix=get_prefix)
 bot.remove_command('help')
