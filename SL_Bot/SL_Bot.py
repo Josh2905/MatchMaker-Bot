@@ -10,14 +10,22 @@ import json
 import traceback
 
 from discord.ext import commands
+import logging
+from logging.handlers import TimedRotatingFileHandler
 
+class SL_Bot(commands.Bot):
+
+    logger = logging.getLogger('discord')
+    logger.setLevel(logging.INFO)
+    handler = logging.handlers.TimedRotatingFileHandler("SLBot.log",'midnight', 1, 5, 'utf-8')
+    handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+    logger.addHandler(handler)
+    
 SETTINGS_FILE = 'settings.json'
 TOKEN_FILE = 'token.txt'
 EXTENSIONS = ["Cogs.Controller", "Cogs.MatchMaking", "Cogs.Misc"]
 COMMANDS = ["1vs1","2vs2","mainChannel","set","get","reset", "settings", "post", "commands", "help", "version", "restart", "roll", "reloadSettings", "debug"]
-    
 
-# dynamic prefixes
 def get_prefix(bot, message):
     '''This method enables the use of custom Prefixes set by the user.'''
     if message.guild is not None:
@@ -32,9 +40,6 @@ def get_prefix(bot, message):
     else:
         prefix = "!"
     return prefix
-
-bot = commands.Bot(command_prefix=get_prefix)
-bot.remove_command('help')
 
 def is_command(cmd):
     '''Return, if a command with this name exists.
@@ -51,6 +56,9 @@ def is_command(cmd):
         if mainCommand in COMMANDS:
             return True
     return False
+
+bot = SL_Bot(command_prefix=get_prefix)
+bot.remove_command('help')
 
 @bot.event
 async def on_message(message):

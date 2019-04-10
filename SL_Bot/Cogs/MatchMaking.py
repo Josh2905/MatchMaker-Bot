@@ -280,7 +280,7 @@ class MatchMaking(commands.Cog):
                         pass
                     except Exception as e:
                         print(traceback.print_exc())
-                        self.controller.logger.exception("Uncaught exception: {0}".format(str(e)))
+                        self.bot.logger.exception("Uncaught exception: {0}".format(str(e)))
                     
                     if lastMsg is not None:
                                             
@@ -499,7 +499,7 @@ class MatchMaking(commands.Cog):
                             lastMsg = msg
                     except Exception as e:
                         print(traceback.print_exc())
-                        self.controller.logger.exception("Uncaught exception: {0}".format(str(e)))
+                        self.bot.logger.exception("Uncaught exception: {0}".format(str(e)))
                                     
                     if (lastMsg is not None) and not self.controller.is_me(lastMsg):
                         
@@ -630,7 +630,7 @@ class MatchMaking(commands.Cog):
             raise 
         except Exception as e:
             print(traceback.print_exc())
-            self.controller.logger.exception("Uncaught exception[" + self.COG_NAME + "]: {0}".format(str(e)))
+            self.bot.logger.exception("Uncaught exception[" + self.COG_NAME + "]: {0}".format(str(e)))
     
     @commands.Cog.listener() 
     async def on_command_error(self, ctx, exception):
@@ -642,7 +642,7 @@ class MatchMaking(commands.Cog):
             raise exception
         except Exception as e:
             print(traceback.print_exc())
-            self.controller.logger.exception("Uncaught exception[" + self.COG_NAME + "]: {0}".format(str(e)))
+            self.bot.logger.exception("Uncaught exception[" + self.COG_NAME + "]: {0}".format(str(e)))
     
     #===============================================================================
     # Commands

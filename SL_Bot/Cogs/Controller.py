@@ -8,12 +8,8 @@ import datetime
 
 import json
 import os
-from collections import deque
-from random import randint
 from functools import partial
-import logging
 import traceback
-from logging.handlers import TimedRotatingFileHandler
 
 
 import discord
@@ -89,14 +85,7 @@ class Controller(commands.Cog):
     SERVER_COMMANDS = ["1vs1","2vs2","mainChannel","set","get","reset", "settings", "post", "commands", "help", "version", "restart", "roll", "reloadSettings", "debug"]
     SERVER_COGS = ["MatchMaking", "Misc"]
     COG_NAME = "Controller"
-    initialized = False
-    
-    logger = logging.getLogger('discord')
-    logger.setLevel(logging.INFO)
-    handler = logging.handlers.TimedRotatingFileHandler("../SLBot.log",'midnight', 1, 5, 'utf-8')
-    handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
-    logger.addHandler(handler)
-        
+    initialized = False 
     
     def __init__(self, bot):
         self.bot = bot
@@ -112,18 +101,22 @@ class Controller(commands.Cog):
         serverObj = self.bot.get_guild(server)
         
         if cog:
-            logStr += "[" + str(cog) + "]"
+            c = "[" + str(cog) + "]"
+            logStr += c
+        else:
+            c= ""
         
         if serverObj:
-            d = "[" + str(serverObj.name) + ":" + str(server) +"] "
-            logStr += d
+            s = "[" + str(serverObj.name) + ":" + str(server) +"] "
+            logStr += s
         else:
-            d = "[" + str(server) + "]  "
-            logStr += d
+            s = "[" + str(server) + "]  "
+            logStr += s
         logStr += str(message)
         print(logStr)
         if log:
-            self.logger.info(str("APPLICATION" + d + str(message)))
+            pass
+            self.bot.logger.info(str("APPLICATION" + c + s + str(message)))
         
     def init_settings(self):
         '''Loads saved settings from json file and creates a 
@@ -595,7 +588,7 @@ class Controller(commands.Cog):
             raise 
         except Exception as e:
             print(traceback.print_exc())
-            self.logger.exception("Uncaught exception[" + self.COG_NAME + "]: {0}".format(str(e)))
+            self.bot.logger.exception("Uncaught exception[" + self.COG_NAME + "]: {0}".format(str(e)))
     
     @commands.Cog.listener() 
     async def on_command_error(self, ctx, exception):
@@ -607,7 +600,7 @@ class Controller(commands.Cog):
             raise exception
         except Exception as e:
             print(traceback.print_exc())
-            self.logger.exception("Uncaught exception[" + self.COG_NAME + "]: {0}".format(str(e)))
+            self.bot.logger.exception("Uncaught exception[" + self.COG_NAME + "]: {0}".format(str(e)))
     
     #===============================================================================
     # Commands
