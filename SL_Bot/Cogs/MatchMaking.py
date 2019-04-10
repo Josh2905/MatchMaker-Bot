@@ -16,7 +16,7 @@ class MatchMaking(commands.Cog):
     '''
     classdocs
     '''
-    class serverNode():
+    class ServerNode():
         '''This class is used to store variables for each connected Server.'''
         
         def __init__(self, _id):
@@ -149,7 +149,7 @@ class MatchMaking(commands.Cog):
         '''
         server = channel.guild.id
         
-        if channel and self.controller.is_setup(server):
+        if channel and self.is_setup(server):
             
             #remove old message
             if self.SERVER_VARS[server].activeMessage:
@@ -198,6 +198,9 @@ class MatchMaking(commands.Cog):
             if mainCommand in self.SERVER_COMMANDS:
                 return True
         return False
+        
+        if True:
+            pass
     
     #===============================================================================
     # looped routines    
@@ -225,7 +228,6 @@ class MatchMaking(commands.Cog):
                         user = get(srvr.members, id=member)
                         self.controller._print(server, "| " + str(user) + " 1vs1 (" + str(difference) + "/" + str(str(datetime.timedelta(seconds=self.controller.get_setting(server, 'ROLE_TIMEOUT')))) + ")", log=False, cog=self.COG_NAME)
                         if difference.total_seconds() > self.controller.get_setting(server, 'ROLE_TIMEOUT'):
-                            
                             role = get(srvr.roles, name=str(self.controller.get_setting(server, 'ROLE_1VS1')))
                             
                             try:
@@ -261,7 +263,6 @@ class MatchMaking(commands.Cog):
         await self.bot.wait_until_ready()
         while not self.bot.is_closed():
             
-            
             if len(self.SERVER_VARS[server].lastMsgStack) > 0 and self.controller.initialized and self.is_setup(server) and self.SERVER_VARS[server].activeMessage and (not self.controller.get_setting(server, 'MAINCHANNEL') == self.controller.get_setting('DEFAULTS', 'MAINCHANNEL')):
                 
                 timeDifference = datetime.datetime.utcnow() - self.SERVER_VARS[server].msgTimer
@@ -291,7 +292,7 @@ class MatchMaking(commands.Cog):
                                             
                         if (not lastMsg.id == self.SERVER_VARS[server].activeMessage.id) and (not self.controller.is_command(lastMsg.content, server)) and (not self.controller.is_custom_command(lastMsg.content, server)):
                             
-                            if self.is_me(lastMsg):
+                            if self.controller.is_me(lastMsg):
                                 differenceToLastMsg = lastMsg.created_at - self.SERVER_VARS[server].msgTimer #timezone correction
                                 # if last msg was posted by bot, it takes at least 7 minutes to have discord display them as seperate messages.
                                 timeLimit = 430 + differenceToLastMsg.total_seconds()
@@ -342,6 +343,15 @@ class MatchMaking(commands.Cog):
     async def initialize(self):
         self.controller._print("init",'initializing', cog=self.COG_NAME)
         
+        self.controller._print("init",'------', cog=self.COG_NAME)
+            
+        self.controller._print("init",'initialize server variables', cog=self.COG_NAME)
+        
+        for server in self.bot.guilds:
+            self.SERVER_VARS[server.id] = self.ServerNode(server.id)
+        
+        self.controller._print("init",'------', cog=self.COG_NAME)
+       
         # initialize MainChannels
         for server in self.bot.guilds:
                         
@@ -353,19 +363,21 @@ class MatchMaking(commands.Cog):
                 
                 # delete old messages
                 self.controller._print(server.id,'Purge old messages', cog=self.COG_NAME)
-                await channel.purge(limit=100, check=self.is_me)
+                await channel.purge(limit=100, check=self.controller.is_me)
                 
                 
                 # post new message
                 self.controller._print(server.id,'Post message', cog=self.COG_NAME)
-                await self.postMessage(channel)
+                msg = await self.postMessage(channel)
+                if msg is not None:
+                    self.SERVER_VARS[server.id].lastMsgStack.append(msg.id)
                 
             else:
                 self.controller._print(server.id,"Matchmaking not fully set up", cog=self.COG_NAME)
         
-        self._print("init",'------', cog=self.COG_NAME)
+        self.controller._print("init",'------', cog=self.COG_NAME)
         
-        self._print("init","load looped tasks", cog=self.COG_NAME)
+        self.controller._print("init","load looped tasks", cog=self.COG_NAME)
         
         for server in self.bot.guilds:
             self.loadLoopRoutines(server)  
@@ -373,7 +385,9 @@ class MatchMaking(commands.Cog):
         self.controller._print("init",'------', cog=self.COG_NAME)  
         
         self.controller._print("init",'Add old roles to timeout check', cog=self.COG_NAME)
-            
+        
+        self.initialized = True
+        
         for server in self.bot.guilds:
             if (not self.controller.get_setting(server.id, 'MAINCHANNEL') == self.controller.get_setting('DEFAULTS', 'MAINCHANNEL')) and self.is_setup(server.id):
                 
@@ -392,7 +406,6 @@ class MatchMaking(commands.Cog):
         
         self.controller._print("init",'------', cog=self.COG_NAME)
         
-        self.initialized = True
         self.controller._print("init",'Cog Initialized', cog=self.COG_NAME)
         self.controller._print("init",'------', cog=self.COG_NAME) 
  
@@ -528,39 +541,97 @@ class MatchMaking(commands.Cog):
                         elif reaction.emoji == self.controller.get_setting(server, 'REACTION_2VS2'):
                             role = get(user.guild.roles, name=str(self.controller.get_setting(server, 'ROLE_2VS2')))
                             await self.doubles(user, role, reaction.message)
+
+    
+    @commands.Cog.listener()
+    async def on_member_update(self, before, after):
+        '''Adds new members of the matchmaking roles to the tracking dicts.
+        Removes members who lost the role.
+        '''
+        
+        if self.initialized: 
+            
+            server = after.guild.id
+            role1vs1 = get(after.guild.roles, name=str(self.controller.get_setting(server, 'ROLE_1VS1')))
+            role2vs2 = get(after.guild.roles, name=str(self.controller.get_setting(server, 'ROLE_2VS2')))
+            
+            # 1vs1 role changes
+            if role1vs1:
                 
-            # remove search notification on reaction
-            #=======================================================================
-            # if len(SERVER_VARS[server].searchMessageSinglesDict) + len(SERVER_VARS[server].searchMessageDoublesDict) > 0:
-            #     for usrID in SERVER_VARS[server].searchMessageSinglesDict:
-            #         if user.id == usrID:
-            #             msgID = SERVER_VARS[server].searchMessageSinglesDict[usrID][1]
-            #             if msgID == reaction.message.id:
-            #                 if reaction.emoji == REACTION_CANCEL:
-            #                     role = get(user.guild.roles, name=str(get_setting(server, 'ROLE_1VS1')))
-            #                     await singles(user, role, reaction.message)
-            #                     break
-            #         else:
-            #             await reaction.message.remove_reaction(reaction.emoji, user)
-            #     
-            #     for usrID in SERVER_VARS[server].searchMessageDoublesDict:
-            #         if user.id == usrID:
-            #             msgID = SERVER_VARS[server].searchMessageDoublesDict[usrID][1]
-            #             if msgID == reaction.message.id:
-            #                 if reaction.emoji == REACTION_CANCEL:
-            #                     role = get(user.guild.roles, name=str(get_setting(server, 'ROLE_2VS2')))
-            #                     await doubles(user, role, reaction.message)
-            #                     break
-            #         else:
-            #             await reaction.message.remove_reaction(reaction.emoji, user)
-            #=======================================================================
-                
-    @commands.command()
-    async def testdebug(self, ctx):
-        """Says hello"""
-        member = ctx.author
-        server = ctx.server.id
-        await ctx.send("" + self.controller.get_setting("MAINCHANNEL") + " || " + self.controller.self.bot.SERVER_VARS[server])
+                # on role add
+                if role1vs1 not in before.roles and role1vs1 in after.roles:
+                    self.controller._print(server, "added tracker for 1vs1 timeout: " + str(after.name), cog=self.COG_NAME)
+                    self.SERVER_VARS[server].singlesDict[after.id] = datetime.datetime.utcnow()
+                    
+                # on role remove
+                if role1vs1 in before.roles and role1vs1 not in after.roles:
+                    self.controller._print(server, "removed tracker for 1vs1 timeout: " + str(after.name), cog=self.COG_NAME)
+                    self.SERVER_VARS[server].singlesDict.pop(after.id, None)
+                    
+                    # remove old search message
+                    if after.id in list(self.SERVER_VARS[server].searchMessageSinglesDict):
+                        
+                        channel = get(after.guild.channels, id=self.SERVER_VARS[server].searchMessageSinglesDict[after.id][0])
+                        
+                        if channel:
+                            try:
+                                message = await channel.fetch_message(self.SERVER_VARS[server].searchMessageSinglesDict[after.id][1])
+                                await message.delete()
+                            except:
+                                pass
+                                
+                        self.SERVER_VARS[server].searchMessageSinglesDict.pop(after.id, None)
+                        
+            # 2vs2 role changes
+            if role2vs2:
+            
+                # on role add
+                if role2vs2 not in before.roles and role2vs2 in after.roles:
+                    self.controller._print(server, "added tracker for 2vs2 timeout: " + str(after.name), cog=self.COG_NAME)
+                    self.SERVER_VARS[server].doublesDict[after.id] = datetime.datetime.utcnow()
+                    
+                # on role remove
+                if role2vs2 in before.roles and role2vs2 not in after.roles:
+                    self.controller._print(server, "removed tracker for 2vs2 timeout: " + str(after.name), cog=self.COG_NAME)
+                    self.SERVER_VARS[server].doublesDict.pop(after.id, None)
+                    
+                    # remove old search message
+                    if after.id in list(self.SERVER_VARS[server].searchMessageDoublesDict):
+                        
+                        channel = get(after.guild.channels, id=self.SERVER_VARS[server].searchMessageDoublesDict[after.id][0])
+                        
+                        if channel:
+                            try:
+                                message = await channel.fetch_message(self.SERVER_VARS[server].searchMessageDoublesDict[after.id][1])
+                                await message.delete()
+                            except:
+                                pass
+                                
+                        self.SERVER_VARS[server].searchMessageDoublesDict.pop(after.id, None)
+    
+    @commands.Cog.listener()
+    async def on_error(self, event_method, *args, **kwargs):
+        '''Custom error handler to log all errors in file.
+        Otherwise internal Exceptions wont be logged.
+        '''
+        
+        try:
+            raise 
+        except Exception as e:
+            print(traceback.print_exc())
+            self.controller.logger.exception("Uncaught exception[" + self.COG_NAME + "]: {0}".format(str(e)))
+    
+    @commands.Cog.listener() 
+    async def on_command_error(self, ctx, exception):
+        '''Custom command error handler to log all errors in file.
+        Otherwise internal Exceptions wont be logged.
+        '''
+        
+        try:
+            raise exception
+        except Exception as e:
+            print(traceback.print_exc())
+            self.controller.logger.exception("Uncaught exception[" + self.COG_NAME + "]: {0}".format(str(e)))
     
 def setup(bot):
     bot.add_cog(MatchMaking(bot))

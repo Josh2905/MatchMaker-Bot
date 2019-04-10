@@ -25,7 +25,7 @@ class Controller(commands.Cog):
     classdocs
     '''
     
-    class serverNode():
+    class ServerNode():
         '''This class is used to store variables for each connected Server.'''
         
         def __init__(self, _id):
@@ -377,7 +377,7 @@ class Controller(commands.Cog):
             pass
 
     #===============================================================================
-    # events
+    # Events
     #===============================================================================
 
     @commands.Cog.listener()
@@ -437,7 +437,6 @@ class Controller(commands.Cog):
             self.initialized = True
         self._print("init",'Initialization complete', cog=self.COG_NAME)
         self._print("init",'------', cog=self.COG_NAME)
-        
         
     @commands.Cog.listener()
     async def on_guild_join(self, server):
@@ -581,7 +580,31 @@ class Controller(commands.Cog):
                     else:
                         await asyncio.sleep(0.5)            
                         await reaction.message.remove_reaction(reaction.emoji, user)
-            
+    
+    @commands.Cog.listener()
+    async def on_error(self, event_method, *args, **kwargs):
+        '''Custom error handler to log all errors in file.
+        Otherwise internal Exceptions wont be logged.
+        '''
+        
+        try:
+            raise 
+        except Exception as e:
+            print(traceback.print_exc())
+            self.logger.exception("Uncaught exception[" + self.COG_NAME + "]: {0}".format(str(e)))
+    
+    @commands.Cog.listener() 
+    async def on_command_error(self, ctx, exception):
+        '''Custom command error handler to log all errors in file.
+        Otherwise internal Exceptions wont be logged.
+        '''
+        
+        try:
+            raise exception
+        except Exception as e:
+            print(traceback.print_exc())
+            self.logger.exception("Uncaught exception[" + self.COG_NAME + "]: {0}".format(str(e)))
+                
     @commands.command()
     async def testdebug(self, ctx):
         """Says hello"""

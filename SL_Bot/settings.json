@@ -8,7 +8,7 @@
         "COMMANDS": {
             "test": "https://www.google.de/"
         },
-        "ROLE_TIMEOUT": 1200,
+        "ROLE_TIMEOUT": 30,
         "MESSAGE_REPOST_TIME": 20,
         "MAINCHANNEL": "551720116543422505",
         "ROLE_2VS2": "2vs2test",
