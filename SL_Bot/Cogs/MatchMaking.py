@@ -741,7 +741,31 @@ class MatchMaking(commands.Cog):
         
         if user in self.controller.SERVER_VARS[server].cmdLockout:
             self.controller.SERVER_VARS[server].cmdLockout.remove(user)
+    
+    @commands.command()
+    async def post(self, ctx):
+        '''Command to force reposting of the main message.
         
+        :param ctx: context of command call
+        '''
+        
+        
+        user = ctx.message.author
+        message = ctx.message
+        server = message.guild.id
+        
+        if await self.controller.checkPermissions(user, message.channel):
+            if self.is_setup(server):
+                self.controller._print(server, str(user.name) + ":" + str(user.id) + " used command: post ", cog=self.COG_NAME)
+                
+                channel = self.bot.get_channel(self.controller.get_setting(server, 'MAINCHANNEL'))
+                if channel.id == message.channel.id:
+                    await self.postMessage(channel)
+                else:
+                    await self.controller.notify(message.channel, "{} nur im Hauptkanal möglich.".format(user.mention))
+            else:
+                await self.controller.notify(message.channel, "{} bitte setze erst die Rollen für 1vs1, 2vs2 und den Hauptkanal. '!help' für mehr.".format(user.mention), 7)
+        await message.delete()    
     
 def setup(bot):
     bot.add_cog(MatchMaking(bot))
