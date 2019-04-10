@@ -87,7 +87,7 @@ class Controller(commands.Cog):
     SERVER_VARS = {}
     SETTINGS = {}
     SERVER_COMMANDS = ["1vs1","2vs2","mainChannel","set","get","reset", "settings", "post", "commands", "help", "version", "restart", "roll", "reloadSettings", "debug"]
-    SERVER_COGS = ["MatchMaking"]
+    SERVER_COGS = ["MatchMaking", "Misc"]
     COG_NAME = "Controller"
     initialized = False
     

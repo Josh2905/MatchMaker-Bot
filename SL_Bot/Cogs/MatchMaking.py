@@ -13,8 +13,7 @@ from collections import deque
 
 
 class MatchMaking(commands.Cog):
-    '''
-    classdocs
+    '''Implements MAtchmaking functionality.
     '''
     class ServerNode():
         '''This class is used to store variables for each connected Server.'''
@@ -336,7 +335,7 @@ class MatchMaking(commands.Cog):
     #===============================================================================
     
     async def initialize(self):
-        self.controller._print("init",'initializing', cog=self.COG_NAME)
+        self.controller._print("init",'initializing MatchMaking', cog=self.COG_NAME)
         
         self.controller._print("init",'------', cog=self.COG_NAME)
             
@@ -405,7 +404,9 @@ class MatchMaking(commands.Cog):
         self.controller._print("init",'------', cog=self.COG_NAME) 
  
     async def init_on_error(self):
+        self.controller._print("init",'initializing MatchMaking after error', cog=self.COG_NAME)
         
+        self.controller._print("init",'------', cog=self.COG_NAME)
         self.initialized = False
         self._print("init","load looped tasks", cog=self.COG_NAME)
         for server in self.bot.guilds:
@@ -553,7 +554,6 @@ class MatchMaking(commands.Cog):
                             role = get(user.guild.roles, name=str(self.controller.get_setting(server, 'ROLE_2VS2')))
                             await self.doubles(user, role, reaction.message)
 
-    
     @commands.Cog.listener()
     async def on_member_update(self, before, after):
         '''Adds new members of the matchmaking roles to the tracking dicts.
