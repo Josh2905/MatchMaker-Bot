@@ -14,6 +14,8 @@ from discord.ext import commands
 SETTINGS_FILE = 'settings.json'
 TOKEN_FILE = 'token.txt'
 EXTENSIONS = ["Cogs.Controller", "Cogs.MatchMaking"]
+COMMANDS = ["1vs1","2vs2","mainChannel","set","get","reset", "settings", "post", "commands", "help", "version", "restart", "roll", "reloadSettings"]
+    
 
 # dynamic prefixes
 def get_prefix(bot, message):
@@ -32,6 +34,26 @@ def get_prefix(bot, message):
 bot = commands.Bot(command_prefix=get_prefix)
 bot.remove_command('help')
 
+def is_command(cmd):
+    '''Return, if a command with this name exists.
+    
+    :param cmd: Command name
+    :param server: Server ID
+    '''
+    if len(cmd.content) > 1 and cmd.content[0] == str(get_prefix(bot, cmd)):
+            
+        command = cmd.content[1:]
+        
+        mainCommand = command.split(" ", 1)[0]
+        
+        if mainCommand in COMMANDS:
+            return True
+    return False
+
+@bot.event
+async def on_message(message):
+    if is_command(message):
+        await bot.process_commands(message)
 
 if __name__ == '__main__':      
     try:

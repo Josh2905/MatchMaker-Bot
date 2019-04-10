@@ -86,7 +86,7 @@ class Controller(commands.Cog):
     
     SERVER_VARS = {}
     SETTINGS = {}
-    SERVER_COMMANDS = ["1vs1","2vs2","mainChannel","set","get","reset", "settings", "post", "commands", "help", "version", "restart"]
+    SERVER_COMMANDS = ["1vs1","2vs2","mainChannel","set","get","reset", "settings", "post", "commands", "help", "version", "restart", "roll", "reloadSettings"]
     SERVER_COGS = ["MatchMaking"]
     COG_NAME = "Controller"
     initialized = False
@@ -604,13 +604,584 @@ class Controller(commands.Cog):
         except Exception as e:
             print(traceback.print_exc())
             self.logger.exception("Uncaught exception[" + self.COG_NAME + "]: {0}".format(str(e)))
+    
+    #===============================================================================
+    # Commands
+    #===============================================================================
+    
+    @commands.command(name="set")
+    async def _set(self, ctx, *args):
+        '''Command to set the different Settings.
+        view help command for more.
+        
+        :param ctx: context of command call
+        '''
+            
+        user = ctx.message.author
+        message = ctx.message
+        server = message.guild.id
+        
+        repost = False
+        cleanup = [message]
+        
+        
+        if await self.checkPermissions(user, message.channel):
+            error = ""
+            self._print(server, str(user.name) + ":" + str(user.id) + " used command: set " + " ".join(args), cog=self.COG_NAME)
+                    
+            if len(args) > 0:
                 
-    @commands.command()
-    async def testdebug(self, ctx):
-        """Says hello"""
-        member = ctx.author
-        server = ctx.guild.id
-        await ctx.send("" + self.bot.get_setting("MAINCHANNEL") + " || " + self.bot.SERVER_VARS[server])
+                
+                
+                
+                if args[0] == 'prefix':
+                    #===============================================================
+                    # PREFIX handling
+                    #===============================================================
+                    
+                    if len(args) == 2:
+                        if len(args[1]) == 1:
+                            
+                            self.update_settings(server, 'PREFIX', args[1])
+                            error = "{} das Prefix wurde aktualisiert. neues Prefix: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "\""
+                        
+                        else:
+                            error = "{} das Prefix muss aus einem Zeichen bestehen. Beispiel: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set prefix !\""
+                    else:
+                        error = "{} falche Anzahl von Argumenten. Beispiel: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set prefix !\""
+                
+                
+                
+                
+                elif args[0] == 'message' :
+                    if len(args) == 1:
+                        # no arguments given
+                        error = "{} fehlendes Argument. Mögliche Argumente: content, timer, interval".format(user.mention) 
+                    
+                    
+                    elif args[1] == 'content':
+                        #===============================================================
+                        # MESSAGE_CONTENT handling
+                        #===============================================================
+                        self.SERVER_VARS[server].cmdLockout.append(user)
+                        
+                        botPrompt = await message.channel.send("{} Deine nächste Nachricht in diesem Kanal wird als Bot-Hauptnachricht übernommen. \nUm den Vorgang abzubrechen, einfach mit \"stop\" antworten.".format(user.mention))
+                        
+                        def check_1(m):
+                            return m.author == user and m.channel == message.channel
+                        
+                        try:
+                            newMessage = await self.bot.wait_for('message', timeout = 120, check=check_1)
+                        except asyncio.TimeoutError:
+                            newMessage = None
+                        
+                        cleanup.append(botPrompt)
+                        
+                        if newMessage:
+                            cleanup.append(newMessage)
+                        
+                            # darf nicht mit prefix beginnen.
+                            if not newMessage.content[0] == str(self.get_setting(server, 'PREFIX')):
+                                if not newMessage.content == "stop":               
+                                    # update settings
+                                    self.update_settings(server, 'MESSAGE_CONTENT', newMessage.content)
+                                    
+                                    repost = True
+                                    
+                                    error = "{} die Nachricht wurde aktualisiert.".format(user.mention)
+                                
+                                else:
+                                    error = "{} die Nachricht wurde nicht aktualisiert.".format(user.mention)
+                            else:
+                                error = "{} die Nachricht darf nicht mit \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "\" beginnen."
+                        else:
+                            error = "{} die Anfrage ist nicht rechtzeitig beantwortet worden.".format(user.mention)
+                    
+                    elif args[1] == 'timer':
+                        #===============================================================
+                        # MESSAGE_REPOST_TIME handling
+                        #===============================================================
+                        
+                        if len(args) == 3:
+                            
+                            # check if number is valid
+                            try: 
+                                timeInSeconds = int(args[2])
+                                self.update_settings(server, 'MESSAGE_REPOST_TIME', timeInSeconds)
+                                
+                                timeStr = str(datetime.timedelta(seconds=timeInSeconds))
+                                                            
+                                error = "{} das Zeitintervall wurde aktualisiert. Neuer post ab jetzt immer in ".format(user.mention) + timeStr
+                            
+                            except ValueError:
+                                error = "{} die Zeit muss als Zahl in Sekunden angegeben werden. Beispiel: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set message timer 600\""
+                        else:
+                            error = "{} falche Anzahl von Argumenten. Beispiel: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set message timer 600\""
+                    
+                    
+                    elif args[1] == 'interval':
+                        #===============================================================
+                        # MESSAGE_INTERVAL handling
+                        #===============================================================
+                        
+                        if len(args) == 3:
+                            
+                            # check if number is valid
+                            try: 
+                                count = int(args[2])
+                                self.update_settings(server, 'MESSAGE_INTERVAL', count)
+                                
+                                repost = True
+                                
+                                error = "{} das Intervall wurde aktualisiert. Neuer Post ab jetzt immer in ".format(user.mention) + str(count) + " Nachrichten."
+                            
+                            except ValueError:
+                                error = "{} bitte gebe eine Zahl an. Beispiel: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set message interval 20\""
+                        else:
+                            error = "{} falche Anzahl von Argumenten. Beispiel: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set message interval 20\""
+                    else:
+                        error = "{} falsches Argument. Mögliche Argumente: content, timer, interval".format(user.mention)
+                    
+                
+                
+                
+                elif args[0] == 'reaction':
+                    #===============================================================
+                    # REACTION_XVSX handling
+                    #===============================================================
+                    
+                    if len(args) == 1:
+                        error = "{} fehlendes Argument. Mögliche Argumente: 1vs1, 2vs2".format(user.mention)
+                         
+                    elif args[1] == '1vs1':
+                        react1vs1 = await message.channel.send("{} bitte reagiere mit der gewünschten 1vs1 Reaktion.".format(user.mention))
+                        self.SERVER_VARS[server].msg1vs1 = react1vs1
+                        
+                    elif args[1] == '2vs2':
+                        react2vs2 = await message.channel.send("{} bitte reagiere mit der gewünschten 2vs2 Reaktion.".format(user.mention))
+                        self.SERVER_VARS[server].msg2vs2 = react2vs2
+                        
+                        # the rest of the implementation can be found in on_reaction_add
+                    else:
+                        error = "{} fehlerhafte Argumente. Mögliche Argumente: 1vs1, 2vs2".format(user.mention) 
+                
+                
+                
+                
+                elif args[0] == 'role':
+                    #===============================================================
+                    # ROLE_XVSX handling
+                    #===============================================================
+                                    
+                    if len(args) == 1:
+                        error = "{} fehlendes Argument. Mögliche Argumente: 1vs1, 2vs2, timeout".format(user.mention)
+                    elif len(args) == 2 and (args[1] == '1vs1' or args[1] == '2vs2'):
+                        error = "{} fehlendes Argument. bitte gebe den Namen der Rolle an. Beispiel: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set role 1vs1 rollenname\""
+                         
+                    elif args[1] == '1vs1':
+                        
+                        roleName = " ".join(args[2:])
+                        
+                        if not roleName == self.get_setting(message.guild.id, 'ROLE_2VS2'):
+                                
+                            role = get(user.guild.roles, name=roleName)
+                        
+                            if role:
+                                # remove old role members
+                                for memberID in list(self.SERVER_VARS[server].singlesDict):
+                                    
+                                    member = self.bot.get_guild(server).get_member(memberID)
+                                    role = get(member.guild.roles, name=str(self.get_setting(server, 'ROLE_1VS1')))
+                                    
+                                    if member and role:
+                                        await member.remove_roles(role)
+                                        self._print(server, "removed 1vs1 from " + str(member), cog=self.COG_NAME)
+                                
+                                self.update_settings(server, 'ROLE_1VS1', roleName)
+                                
+                                error = "{} neue Rolle für 1vs1 gespeichert: ".format(user.mention) + str(self.get_setting(server, 'ROLE_1VS1'))
+                                
+                            else:
+                                error = "{} Rolle existiert nicht.".format(user.mention)
+                        
+                        else:
+                            error = "{} 1vs1 und 2vs2 dürfen nicht die gleiche Rolle haben.".format(user.mention)
+                            
+                    elif args[1] == '2vs2':
+                        
+                        roleName = " ".join(args[2:])
+                        
+                        if not roleName == self.get_setting(message.guild.id, 'ROLE_1VS1'):
+                              
+                            role = get(user.guild.roles, name=roleName)
+                        
+                            if role:
+                                # remove old role members
+                                for memberID in list(self.SERVER_VARS[server].doublesDict):
+                                    
+                                    member = self.bot.get_guild(server).get_member(memberID)
+                                    role = get(member.guild.roles, name=str(self.get_setting(server, 'ROLE_2VS2')))
+                                    
+                                    if member and role:
+                                        await member.remove_roles(role)
+                                        self._print(server, "removed 2vs2 from " + str(member), cog=self.COG_NAME)
+                                
+                                self.update_settings(server, 'ROLE_2VS2', roleName)
+                                
+                                error = "{} neue Rolle für 2vs2 gespeichert: ".format(user.mention) + str(self.get_setting(server, 'ROLE_2VS2'))
+                                
+                            else:
+                                error = "{} Rolle existiert nicht.".format(user.mention)
+                        else:
+                            error = "{} 1vs1 und 2vs2 dürfen nicht die gleiche Rolle haben.".format(user.mention)
+                        
+                    elif args[1] == 'timeout':
+                        if len(args) == 3 :
+                            
+                            # check if number is valid
+                            try: 
+                                timeInSeconds = int(args[2])
+                                self.update_settings(server, 'ROLE_TIMEOUT', timeInSeconds)
+                                
+                                timeStr = str(datetime.timedelta(seconds=timeInSeconds))
+                                
+                                repost = True
+                                
+                                error = "{} das Zeitintervall wurde aktualisiert. Rollen werden nun wieder entfernt nach: ".format(user.mention) + timeStr
+                            
+                            except ValueError:
+                                error = "{} die Zeit muss als Zahl in Sekunden angegeben werden. Beispiel: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set role timeout 600\""
+                                            
+                        else:
+                            error = "{} fehlerhafte Argumente. Beispiel: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set role timeout 600\""
+                    else:
+                        error = "{} fehlerhafte Argumente. Mögliche Argumente: 1vs1, 2vs2, timeout".format(user.mention)
+                
+                
+                
+                    
+                elif args[0] == 'checkinterval':
+                    
+                    if len(args) == 1:
+                        error = "{} fehlendes Argument. Mögliche Argumente: roles, message".format(user.mention)
+                    elif not len(args) == 3:
+                        error = "{} fehlerhafte Argumente. Beispiel: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set checkinterval roles 60\""
+                        
+                    elif args[1] == 'roles':
+                        #===============================================================
+                        # CHECK_INTERVAL_ROLES handling
+                        #===============================================================
+                        
+                        # check if number is valid
+                        try: 
+                            timeInSeconds = int(args[2])
+                            self.update_settings(server, 'CHECK_INTERVAL_ROLES', timeInSeconds)
+                            
+                            timeStr = str(datetime.timedelta(seconds=timeInSeconds))
+                                                    
+                            error = "{} das Zeitintervall wurde aktualisiert. Vergebene Rollen werden nun alle ".format(user.mention) + timeStr + " überprüft."
+                        
+                        except ValueError:
+                            error = "{} die Zeit muss als Zahl in Sekunden angegeben werden. Beispiel: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set checkinterval roles 60\""
+                                       
+                        
+                    elif args[1] == 'message':
+                        #===============================================================
+                        # CHECK_INTERVAL_REPOST handling
+                        #===============================================================
+                        
+                        # check if number is valid
+                        try: 
+                            timeInSeconds = int(args[2])
+                            self.update_settings(server, 'CHECK_INTERVAL_REPOST', timeInSeconds)
+                            
+                            timeStr = str(datetime.timedelta(seconds=timeInSeconds))
+                                                    
+                            error = "{} das Zeitintervall wurde aktualisiert. Es wird nun alle ".format(user.mention) + timeStr + " überprüft, ob eine neue Nachricht gepostet werden muss."
+                        
+                        except ValueError:
+                            error = "{} die Zeit muss als Zahl in Sekunden angegeben werden. Beispiel: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set checkinterval roles 60\""
+                                
+                    else:
+                        error = "{} fehlerhafte Argumente. Mögliche Argumente: roles, message".format(user.mention) 
+                    
+                elif args[0] == 'command':
+                    #===============================================================
+                    # CUSTOM_COMMAND handling
+                    #===============================================================
+                    self.SERVER_VARS[server].cmdLockout.append(user)
+                    
+                    if len(args) == 2:
+                        
+                        command = str(args[1])
+                        
+                        if command not in self.SERVER_COMMANDS:
+                        
+                            botPrompt = await message.channel.send("{} Deine nächste Nachricht in diesem Kanal wird als Antwort auf den Befehl \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + command + "\" übernommen.\nUm den Vorgang abzubrechen, einfach mit \"stop\" antworten. \nUm einen alten Befehl zu entfernen, mit \"delete\" antworten.")
+                            
+                            def check_2(m):
+                                return m.author == user and m.channel == message.channel
+                            
+                            try:
+                                newMessage = await self.bot.wait_for('message', timeout = 120, check=check_2)
+                            except asyncio.TimeoutError:
+                                newMessage = None
+                            
+                            cleanup.append(botPrompt)
+                            
+                            if newMessage:
+                                cleanup.append(newMessage)
+                            
+                                # cannot start with prefix
+                                if not newMessage.content[0] == str(self.get_setting(server, 'PREFIX')):
+                                    if not newMessage.content == "stop":               
+                                        # update settings
+                                        self.update_settings(server, 'COMMANDS', newMessage.content, customCmd=command)
+                                                                            
+                                        error = "{} der Befehl \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + command + "\" wurde aktualisiert."
+                                    
+                                    else:
+                                        error = "{} der Befehl wurde nicht aktualisiert.".format(user.mention)
+                                else:
+                                    error = "{} die Nachricht darf nicht mit \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "\" beginnen."
+                            else:
+                                error = "{} die Anfrage ist nicht rechtzeitig beantwortet worden.".format(user.mention)
+                        else:
+                            error = "{} dieser Befehl ist reserviert und kann nicht gesetzt werden.".format(user.mention)
+                    else:
+                        error = "{} falche Anzahl von Argumenten. Beispiel: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set command beispielBefehl\""
+                    
+                
+                elif args[0] == 'dmcommand':
+                    #===============================================================
+                    # CUSTOM_COMMAND_DM handling
+                    #===============================================================
+                    self.SERVER_VARS[server].cmdLockout.append(user)
+                    
+                    if len(args) == 2:
+                        
+                        command = str(args[1])
+                        
+                        if command not in self.SERVER_COMMANDS:
+                        
+                            botPrompt = await message.channel.send("{} Deine nächste Nachricht in diesem Kanal wird als Antwort (Private Nachricht) auf den Befehl \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + command + "\" übernommen.\nUm den Vorgang abzubrechen, einfach mit \"stop\" antworten. \nUm einen alten Befehl zu entfernen, mit \"delete\" antworten.")
+                            
+                            def check_3(m):
+                                return m.author == user and m.channel == message.channel
+                            
+                            try:
+                                newMessage = await self.bot.wait_for('message', timeout = 120, check=check_3)
+                            except asyncio.TimeoutError:
+                                newMessage = None
+                            
+                            cleanup.append(botPrompt)
+                            
+                            if newMessage:
+                                cleanup.append(newMessage)
+                            
+                                # cannot start with prefix
+                                if not newMessage.content[0] == str(self.get_setting(server, 'PREFIX')):
+                                    if not newMessage.content == "stop":               
+                                        # update settings
+                                        self.update_settings(server, 'DM_COMMANDS', newMessage.content, customDmCmd=command)
+                                                                            
+                                        error = "{} der Befehl \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + command + "\" wurde aktualisiert."
+                                    
+                                    else:
+                                        error = "{} der Befehl wurde nicht aktualisiert.".format(user.mention)
+                                else:
+                                    error = "{} die Nachricht darf nicht mit \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "\" beginnen."
+                            else:
+                                error = "{} die Anfrage ist nicht rechtzeitig beantwortet worden.".format(user.mention)
+                        else:
+                            error = "{} dieser Befehl ist reserviert und kann nicht gesetzt werden.".format(user.mention)
+                    else:
+                        error = "{} falche Anzahl von Argumenten. Beispiel: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set dmcommand beispielBefehl\""
+                    
+                
+                    
+                else:
+                    error = "{} fehlerhafte Argumente. Mögliche Argumente: prefix, message, reaction, role, checkinterval, command, dmcommand".format(user.mention)
+            else:
+                # TODO help here
+                error = "{} zu wenig Argumente. Mögliche Argumente: prefix, message, reaction, role, checkinterval, command, dmcommand".format(user.mention)
+            
+            # notify error, if one occured
+            if not error == "":
+                await self.notify(message.channel, error, 5)    
+        
+        if len(cleanup) > 1:
+            await message.channel.delete_messages(cleanup)
+        elif len(cleanup) == 1:
+            await cleanup[0].delete()
+        
+        if user in self.SERVER_VARS[server].cmdLockout:
+            self.SERVER_VARS[server].cmdLockout.remove(user)
+        
+        # only repost Message neccessary
+        if repost:
+            channel = self.bot.get_channel(self.get_setting(server, 'MAINCHANNEL'))
+            matchMaking = self.bot.get_cog("MatchMaking")
+            await matchMaking.postMessage(channel)
+    
+    @commands.command(name="get")
+    async def _get(self, ctx, *args):
+        '''Command to get current state of specific settings.
+        
+        :param ctx: context of command call
+        '''
+        
+            
+        user = ctx.message.author
+        message = ctx.message
+        server = message.guild.id
+        
+        
+        cleanup = [message]
+        
+        if await self.checkPermissions(user, message.channel):
+            
+            self._print(server, str(user.name) + ":" + str(user.id) + " used command: get " + " ".join(args), cog=self.COG_NAME)
+            
+            returnStr = ""
+            if len(args) > 0:
+                
+                
+                if args[0] == 'prefix':
+                    #===============================================================
+                    # PREFIX handling
+                    #===============================================================
+                    
+                    returnStr = "{} Das Prefix lautet: \n".format(user.mention) + str(self.get_setting(message.guild.id, 'PREFIX'))
+                
+                elif args[0] == 'message' :
+                    
+                    if not len(args) == 2:
+                        
+                        returnStr = "{} zu wenig Argumente. Mögliche Argumente: content, timer, interval".format(user.mention)
+                        
+                    elif args[1] == 'content':
+                        #===============================================================
+                        # MESSAGE_CONTENT handling
+                        #===============================================================
+                        
+                        returnStr = "{} Die aktuelle Nachricht lautet: \n".format(user.mention) + str(self.get_setting(message.guild.id, 'MESSAGE_CONTENT'))
+                        
+                    elif args[1] == 'timer':
+                        #===============================================================
+                        # MESSAGE_REPOST_TIME handling
+                        #===============================================================
+                        
+                        timeStr = str(datetime.timedelta(seconds=self.get_setting(message.guild.id, 'MESSAGE_REPOST_TIME')))
+                        returnStr = "{} Die Nachricht wird automatisch erneut gepostet nach: \n".format(user.mention) + timeStr
+                    
+                    elif args[1] == 'interval':
+                        #===============================================================
+                        # MESSAGE_INTERVAL handling
+                        #===============================================================
+                        
+                        returnStr = "{} Anzahl der Nachrichten, bis die Bot-Nachticht erneut gepostet wird: \n".format(user.mention) + str(self.get_setting(message.guild.id, 'MESSAGE_INTERVAL'))
+                        
+                    else:
+                        returnStr = "{} fehlerhafte Argumente. Mögliche Argumente: content, timer, interval".format(user.mention)
+                    
+                
+                
+                
+                elif args[0] == 'reaction':
+                    #===============================================================
+                    # REACTION_XVSX handling
+                    #===============================================================
+                    
+                    if not len(args) == 2:
+                        
+                        returnStr = "{} zu wenig Argumente. Mögliche Argumente: 1vs1, 2vs2".format(user.mention)
+                         
+                    elif args[1] == '1vs1':
+                        
+                        returnStr = "{} Die aktuelle Reaktion für 1vs1: \n".format(user.mention) + str(self.get_setting(message.guild.id, 'REACTION_1VS1'))
+                        
+                    elif args[1] == '2vs2':
+                        
+                        returnStr = "{} Die aktuelle Reaktion für 2vs2: \n".format(user.mention) + str(self.get_setting(message.guild.id, 'REACTION_2VS2'))
+                        
+                    else:
+                        returnStr = "{} fehlerhafte Argumente. Mögliche Argumente: 1vs1, 2vs2".format(user.mention)
+                
+                
+                
+                
+                elif args[0] == 'role':
+                    #===============================================================
+                    # ROLE_XVSX handling
+                    #===============================================================
+                                    
+                    if not len(args) == 2:
+                        
+                        returnStr = "{} zu wenig Argumente. Mögliche Argumente: 1vs1, 2vs2, timeout".format(user.mention)
+                        
+                    elif args[1] == '1vs1':
+                        
+                        returnStr = "{} Die aktuelle 1vs1 Rolle: \n".format(user.mention) + str(self.get_setting(message.guild.id, 'ROLE_1VS1'))
+                        
+                    elif args[1] == '2vs2':
+                        
+                        returnStr = "{} Die aktuelle 2vs2 Rolle: \n".format(user.mention) + str(self.get_setting(message.guild.id, 'ROLE_2VS2'))
+                    
+                    elif args[1] == 'timeout':
+                        
+                        timeStr = str(datetime.timedelta(seconds=self.get_setting(message.guild.id, 'ROLE_TIMEOUT')))
+                        returnStr = "{} Die Rolle wird automatisch entfernt nach: \n".format(user.mention) + timeStr
+                        
+                    else:
+                        
+                        returnStr = "{} fehlerhafte Argumente. Mögliche Argumente: 1vs1, 2vs2, timeout".format(user.mention)
+                
+                
+                
+                    
+                elif args[0] == 'checkinterval':
+                    
+                    if not len(args) == 2:
+                        
+                        returnStr = "{} zu wenig Argumente. Mögliche Argumente: roles, message".format(user.mention)
+                        
+                    elif args[1] == 'roles':
+                        #===============================================================
+                        # CHECK_INTERVAL_ROLES handling
+                        #===============================================================
+                        
+                        timeStr = str(datetime.timedelta(seconds=self.get_setting(message.guild.id, 'CHECK_INTERVAL_ROLES')))
+                        returnStr = "{} Zeitintervall, in dem die Rollen überprüft werden: \n".format(user.mention) + timeStr  
+                        
+                    elif args[1] == 'message':
+                        #===============================================================
+                        # CHECK_INTERVAL_REPOST handling
+                        #===============================================================
+                        
+                        timeStr = str(datetime.timedelta(seconds=self.get_setting(message.guild.id, 'CHECK_INTERVAL_REPOST')))
+                        returnStr = "{} Zeitintervall, in dem die Nachricht überprüft wird: \n".format(user.mention) + timeStr
+                             
+                    else:
+                        
+                        returnStr = "{} fehlerhafte Argumente. Mögliche Argumente: roles, message".format(user.mention)
+                    
+                    
+                    
+                else:
+                    returnStr = "{} fehlerhafte Argumente. Mögliche Argumente: prefix, message, reaction, role, checkinterval".format(user.mention) 
+            else:
+                # TODO help here
+                returnStr = "{} zu wenig Argumente. Mögliche Argumente: prefix, message, reaction, role, checkinterval".format(user.mention)
+            
+            # notify error, if one occured
+            if not returnStr == "":
+                await self.notify(message.channel, returnStr, 10)
+        if len(cleanup) > 1:
+            await message.channel.delete_messages(cleanup)
+        elif len(cleanup) == 1:
+            await cleanup[0].delete()
+
     
 def setup(bot):
     bot.add_cog(Controller(bot))

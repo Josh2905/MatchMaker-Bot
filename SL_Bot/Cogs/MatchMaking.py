@@ -38,7 +38,6 @@ class MatchMaking(commands.Cog):
             
     SERVER_VARS = {}
     COG_NAME = "MatchMaking"
-    SERVER_COMMANDS = []
     initialized = False
     
     def __init__(self, bot):
@@ -182,25 +181,6 @@ class MatchMaking(commands.Cog):
             self.controller._print(server, "could not post message: server not fully set up", cog=self.COG_NAME)
             
             return None
-    
-    def is_command(self, cmd, server):
-        '''Return, if a command with this name exists.
-        
-        :param cmd: Command name
-        :param server: Server ID
-        '''
-        if len(cmd) > 1 and cmd[0] == str(self.controller.get_setting(server, 'PREFIX')):
-                
-            command = cmd[1:]
-            
-            mainCommand = command.split(" ", 1)[0]
-            
-            if mainCommand in self.SERVER_COMMANDS:
-                return True
-        return False
-        
-        if True:
-            pass
     
     #===============================================================================
     # looped routines    
@@ -407,8 +387,8 @@ class MatchMaking(commands.Cog):
             if (not self.controller.get_setting(server.id, 'MAINCHANNEL') == self.controller.get_setting('DEFAULTS', 'MAINCHANNEL')) and self.is_setup(server.id):
                 
                 channel = self.bot.get_channel(self.controller.get_setting(server.id, 'MAINCHANNEL'))
-                role1 = get(server.roles, name=self.controller.get_setting(server.id, 'ROLE_1VS1'))
-                role2 = get(server.roles, name=self.controller.get_setting(server.id, 'ROLE_2VS2'))
+                role1 = get(server.roles, name=str(self.controller.get_setting(server.id, 'ROLE_1VS1')))
+                role2 = get(server.roles, name=str(self.controller.get_setting(server.id, 'ROLE_2VS2')))
                 if role1 and role2:
                     
                     for member in server.members:
@@ -497,7 +477,7 @@ class MatchMaking(commands.Cog):
                 return    
             
             # ignore actual commands
-            if self.is_command(message.content, server):
+            if self.controller.is_command(message.content, server):
                 return    
             
             # post a message after each Nth message in the channel
@@ -677,7 +657,7 @@ class MatchMaking(commands.Cog):
         user = ctx.message.author
         message = ctx.message
         server = message.guild.id
-        role = get(user.guild.roles, name=self.controller.get_setting(message.guild.id, 'ROLE_1VS1'))
+        role = get(user.guild.roles, name=str(self.controller.get_setting(message.guild.id, 'ROLE_1VS1')))
         
         self.controller._print(server, str(user.name) + ":" + str(user.id) + " used command: 1vs1", cog=self.COG_NAME)
         
@@ -700,7 +680,7 @@ class MatchMaking(commands.Cog):
         user = ctx.message.author
         message = ctx.message
         server = message.guild.id
-        role = get(user.guild.roles, name=self.controller.get_setting(message.guild.id, 'ROLE_2VS2'))
+        role = get(user.guild.roles, name=str(self.controller.get_setting(message.guild.id, 'ROLE_2VS2')))
             
         self.controller._print(server, str(user.name) + ":" + str(user.id) + " used command: 2vs2", cog=self.COG_NAME)
         
