@@ -393,10 +393,10 @@ class MatchMaking(commands.Cog):
                     for member in server.members:
                         if role1 in member.roles:
                             self.SERVER_VARS[server.id].singlesDict[member.id] = datetime.datetime.utcnow()
-                            await self.notifySearch(channel, member, role1)
+                            #await self.notifySearch(channel, member, role1)
                         if role2 in member.roles:
                             self.SERVER_VARS[server.id].doublesDict[member.id] = datetime.datetime.utcnow()
-                            await self.notifySearch(channel, member, role2)
+                            #await self.notifySearch(channel, member, role2)
         
         self.controller._print("init",'------', cog=self.COG_NAME)
         
