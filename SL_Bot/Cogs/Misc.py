@@ -24,6 +24,9 @@ class Misc(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.controller = self.bot.get_cog('Controller')
+        
+        if True:
+            pass
     
     #===============================================================================
     # called in on_ready of controller  
@@ -53,6 +56,9 @@ class Misc(commands.Cog):
         
         self.controller._print("init",'Cog Initialized', cog=self.COG_NAME)
         self.controller._print("init",'------', cog=self.COG_NAME)
+        
+        if True:
+            pass
     
     #===============================================================================
     # Commands
