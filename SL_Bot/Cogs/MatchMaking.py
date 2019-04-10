@@ -409,13 +409,13 @@ class MatchMaking(commands.Cog):
         
         self.controller._print("init",'------', cog=self.COG_NAME)
         
-        self._print("init","load looped tasks", cog=self.COG_NAME)
+        self.controller._print("init","load looped tasks", cog=self.COG_NAME)
         for server in self.bot.guilds:
             self.loadLoopRoutines(server)
         
-        self._print("init",'------', cog=self.COG_NAME)
+        self.controller._print("init",'------', cog=self.COG_NAME)
         
-        self._print("init",'posting messages:', cog=self.COG_NAME)
+        self.controller._print("init",'posting messages:', cog=self.COG_NAME)
        
         for server in self.bot.guilds:
             if (not self.controller.get_setting(server.id, 'MAINCHANNEL') == self.controller.get_setting('DEFAULTS', 'MAINCHANNEL')) and self.is_setup(server.id):
