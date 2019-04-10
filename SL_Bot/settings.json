@@ -10,7 +10,7 @@
         },
         "ROLE_TIMEOUT": 30,
         "MESSAGE_REPOST_TIME": 20,
-        "MAINCHANNEL": "551720116543422505",
+        "MAINCHANNEL": 551720116543422505,
         "ROLE_2VS2": "2vs2test",
         "PREFIX": "?",
         "REACTION_1VS1": "\ud83d\udc40",

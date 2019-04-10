@@ -82,7 +82,7 @@ class MatchMaking(commands.Cog):
             self.SERVER_VARS[server].searchMessageDoublesDict[user.id] = (channel.id, msg.id)
     
     async def singles(self, user, role, message):
-        '''This method adds/removes a role from a discord servber member, informs him of that fact, removes the message together with its own 
+        '''This method adds/removes a role from a discord server member, informs him of that fact, removes the message together with its own 
         answer automatically after a few seconds.
          
         :param user: The member to be roled
@@ -241,7 +241,7 @@ class MatchMaking(commands.Cog):
                         difference = datetime.datetime.utcnow() - self.SERVER_VARS[server].doublesDict[member]
                         difference -= datetime.timedelta(microseconds=difference.microseconds)
                         user = get(srvr.members, id=member)
-                        self.controller._print(server, str(user) + " 2vs2 (" + str(difference) + "/" + str(str(datetime.timedelta(seconds=self.controller.get_setting(server, 'ROLE_TIMEOUT')))) + ")", log=False, cog=self.COG_NAME)
+                        self.controller._print(server, "| " + str(user) + " 2vs2 (" + str(difference) + "/" + str(str(datetime.timedelta(seconds=self.controller.get_setting(server, 'ROLE_TIMEOUT')))) + ")", log=False, cog=self.COG_NAME)
                         if difference.total_seconds() > self.controller.get_setting(server, 'ROLE_TIMEOUT'):
                             
                             role = get(srvr.roles, name=str(self.controller.get_setting(server, 'ROLE_2VS2')))
@@ -262,6 +262,21 @@ class MatchMaking(commands.Cog):
         
         await self.bot.wait_until_ready()
         while not self.bot.is_closed():
+            
+            #DEBUG
+            #===================================================================
+            # channel = self.bot.get_channel(self.controller.get_setting(server, 'MAINCHANNEL'))
+            # 
+            # list = self.SERVER_VARS[server].lastMsgStack.copy()
+            # 
+            # for _id in list:
+            #     
+            #     msg = await channel.fetch_message(_id)
+            #     print(msg.content)
+            #     print(_id)
+            #     print("__")
+            # print("__")
+            #===================================================================
             
             if len(self.SERVER_VARS[server].lastMsgStack) > 0 and self.controller.initialized and self.is_setup(server) and self.SERVER_VARS[server].activeMessage and (not self.controller.get_setting(server, 'MAINCHANNEL') == self.controller.get_setting('DEFAULTS', 'MAINCHANNEL')):
                 
@@ -441,8 +456,24 @@ class MatchMaking(commands.Cog):
     
     @commands.Cog.listener()
     async def on_guild_join(self, server):
-        self.controller._print(server.id,'loading looped routines', cog=self.COG_NAME)
+        self.controller._print(server.id,  "NEW SERVER ARRIVED", cog=self.COG_NAME)
+        
+        #add server do global var dict
+        self.SERVER_VARS[server.id] = self.ServerNode(server.id)
+        
+        # ad routines for new server
         self.loadLoopRoutines(server)
+        
+        self.controller._print(server.id,  "NEW SERVER INITIALIZED", cog=self.COG_NAME)
+    
+    @commands.Cog.listener()
+    async def on_guild_remove(self, server):
+        '''Removes leaving servers from the SERVER_VARS dict and settings file.'''
+        
+        self.controller._print(server.id,  "SERVER REMOVED", cog=self.COG_NAME)
+        # remove server from global var dict
+        
+        self.SERVER_VARS.pop(server.id, None)
     
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -632,6 +663,105 @@ class MatchMaking(commands.Cog):
         except Exception as e:
             print(traceback.print_exc())
             self.controller.logger.exception("Uncaught exception[" + self.COG_NAME + "]: {0}".format(str(e)))
+    
+    #===============================================================================
+    # Commands
+    #===============================================================================
+            
+    @commands.command(name="1vs1")
+    async def _1vs1(self, ctx):
+        '''Command to add user to 1vs1 role, calls singles() method.
+        
+        :param ctx: context of command call
+        '''
+        user = ctx.message.author
+        message = ctx.message
+        server = message.guild.id
+        role = get(user.guild.roles, name=self.controller.get_setting(message.guild.id, 'ROLE_1VS1'))
+        
+        self.controller._print(server, str(user.name) + ":" + str(user.id) + " used command: 1vs1", cog=self.COG_NAME)
+        
+        if self.is_setup(server):
+            if message.channel.id == self.controller.get_setting(message.guild.id, 'MAINCHANNEL'):
+                await self.singles(user, role, message)
+            else:
+                await self.controller.notify(message.channel, "{} in diesem Kanal nicht möglich.".format(user.mention))
+        else:
+            await self.controller.notify(message.channel, "{} bitte setze erst die Rollen für 1vs1, 2vs2 und einen Hauptkanal. '!help' für mehr.".format(user.mention), 7)
+        
+        await message.delete()
+        
+    @commands.command(name="2vs2")
+    async def _2vs2(self, ctx):
+        '''Command to add user to 2vs2 role, calls doubles() method.
+        
+        :param ctx: context of command call
+        '''
+        user = ctx.message.author
+        message = ctx.message
+        server = message.guild.id
+        role = get(user.guild.roles, name=self.controller.get_setting(message.guild.id, 'ROLE_2VS2'))
+            
+        self.controller._print(server, str(user.name) + ":" + str(user.id) + " used command: 2vs2", cog=self.COG_NAME)
+        
+        if self.is_setup(server):
+            if message.channel.id == self.controller.get_setting(message.guild.id, 'MAINCHANNEL'):
+                await self.doubles(user, role, message)
+            else:
+                await self.controller.notify(message.channel, "{} in diesem Kanal nicht möglich.".format(user.mention))
+        else:
+            await self.controller.notify(message.channel, "{} bitte setze erst die Rollen für 1vs1, 2vs2 und einen Hauptkanal. '!help' für mehr.".format(user.mention), 7)
+        
+        await message.delete()
+    
+    @commands.command()
+    async def mainChannel(self, ctx):
+        '''Command to set a main channel.
+        
+        :param ctx: context of command call
+        '''
+        
+        user = ctx.message.author
+        message = ctx.message
+        server = message.guild.id
+        
+        
+        self.controller.SERVER_VARS[server].cmdLockout.append(user)
+        
+        if await self.controller.checkPermissions(user, message.channel):
+            
+            self.controller._print(server, str(user.name) + ":" + str(user.id) + " used command: mainChannel", cog=self.COG_NAME)
+            
+            if not self.controller.get_setting(message.guild.id, 'ROLE_2VS2') == self.controller.get_setting('DEFAULTS', 'ROLE_2VS2') and not self.controller.get_setting(message.guild.id, 'ROLE_1VS1') == self.controller.get_setting('DEFAULTS', 'ROLE_1VS1'):
+                newMainChannel = message.channel
+                if not newMainChannel.id == self.controller.get_setting(server, 'MAINCHANNEL'):
+                    
+                    self.controller._print(server, 'Apply new main channel', cog=self.COG_NAME)
+                    oldChannel = self.bot.get_channel(self.controller.get_setting(server, 'MAINCHANNEL'))
+                    self.controller.update_settings(server, 'MAINCHANNEL', newMainChannel.id)
+                    
+                    
+                    if not oldChannel:
+                        self.controller._print(server, 'Purge old messages', cog=self.COG_NAME)
+                        #first instance of setting main channel
+                        await newMainChannel.purge(limit=100, check=self.controller.is_me)
+                        
+                    self.controller._print(server, 'Post new Message', cog=self.COG_NAME)
+                    await self.postMessage(newMainChannel)
+                    
+                    if oldChannel:
+                        self.controller._print(server, 'Purge old messages', cog=self.COG_NAME)
+                        await oldChannel.purge(limit=100, check=self.controller.is_me)
+                    
+                else:
+                    await self.controller.notify(message.channel, "{} dies ist bereits der Main Channel.".format(user.mention))
+            else:
+                await self.controller.notify(message.channel, "{} bitte setze erst die Rollen für 1vs1, 2vs2 und einen Hauptkanal. '!help' für mehr.".format(user.mention), 7)
+        await message.delete()
+        
+        if user in self.controller.SERVER_VARS[server].cmdLockout:
+            self.controller.SERVER_VARS[server].cmdLockout.remove(user)
+        
     
 def setup(bot):
     bot.add_cog(MatchMaking(bot))
