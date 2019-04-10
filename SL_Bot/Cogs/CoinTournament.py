@@ -59,7 +59,7 @@ class CoinTournament(commands.Cog):
         
         if True:
             pass
-    
+ 
     
     @commands.command()
     async def testdebug(self, ctx):
