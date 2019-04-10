@@ -14,7 +14,7 @@ from discord.ext import commands
 SETTINGS_FILE = 'settings.json'
 TOKEN_FILE = 'token.txt'
 EXTENSIONS = ["Cogs.Controller", "Cogs.MatchMaking"]
-COMMANDS = ["1vs1","2vs2","mainChannel","set","get","reset", "settings", "post", "commands", "help", "version", "restart", "roll", "reloadSettings"]
+COMMANDS = ["1vs1","2vs2","mainChannel","set","get","reset", "settings", "post", "commands", "help", "version", "restart", "roll", "reloadSettings", "debug"]
     
 
 # dynamic prefixes
@@ -60,7 +60,6 @@ async def on_message(message):
 if __name__ == '__main__':      
     try:
         token = open(TOKEN_FILE,"r").readline()
-        
         for ext in EXTENSIONS:
             bot.load_extension(ext)
         bot.run(token)
