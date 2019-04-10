@@ -13,3 +13,4 @@ SL_Bot/SLBot.log
 *.pyc
 SL_Bot/SLBot.log.2019-04-09
 SLBot.log
+SL_Bot_milestone/MatchMaker.py
