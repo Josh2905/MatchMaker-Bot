@@ -736,7 +736,7 @@ class MatchMaking(commands.Cog):
                 else:
                     await self.controller.notify(message.channel, "{} dies ist bereits der Main Channel.".format(user.mention))
             else:
-                await self.controller.notify(message.channel, "{} bitte setze erst die Rollen für 1vs1, 2vs2 und einen Hauptkanal. '!help' für mehr.".format(user.mention), 7)
+                await self.controller.notify(message.channel, "{} bitte setze erst die Rollen für 1vs1 und 2vs2. '!help' für mehr.".format(user.mention), 7)
         await message.delete()
         
         if user in self.controller.SERVER_VARS[server].cmdLockout:

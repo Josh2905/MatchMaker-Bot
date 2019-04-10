@@ -546,10 +546,12 @@ class Controller(commands.Cog):
                             channel = self.bot.get_channel(self.get_setting(server, 'MAINCHANNEL'))
                             
                             matchMaker = self.bot.get_cog("MatchMaking")
-                            await self.matchMaker.postMessage(channel)
+                            await matchMaker.postMessage(channel)
                             self.SERVER_VARS[server].msg1vs1 = False
                         else:
                             await self.notify(reaction.message.channel, "{} ich habe leider keinen Zugriff auf dieses Emoji.".format(user.mention))
+                            await self.SERVER_VARS[server].msg1vs1.delete()
+                            self.SERVER_VARS[server].msg1vs1 = False
                     else:
                         await asyncio.sleep(0.5)            
                         await reaction.message.remove_reaction(reaction.emoji, user)
@@ -573,10 +575,12 @@ class Controller(commands.Cog):
                             channel = self.bot.get_channel(self.get_setting(server, 'MAINCHANNEL'))
                             
                             matchMaker = self.bot.get_cog("MatchMaking")
-                            await self.matchMaker.postMessage(channel)
+                            await matchMaker.postMessage(channel)
                             self.SERVER_VARS[server].msg2vs2 = False
                         else:
                             await self.notify(reaction.message.channel, "{} ich habe leider keinen Zugriff auf dieses Emoji.".format(user.mention))
+                            await self.SERVER_VARS[server].msg2vs2.delete()
+                            self.SERVER_VARS[server].msg2vs2 = False
                     else:
                         await asyncio.sleep(0.5)            
                         await reaction.message.remove_reaction(reaction.emoji, user)
@@ -788,7 +792,9 @@ class Controller(commands.Cog):
                         
                             if role:
                                 # remove old role members
-                                for memberID in list(self.SERVER_VARS[server].singlesDict):
+                                matchMaker = self.bot.get_cog("MatchMaking")
+                                
+                                for memberID in list(matchMaker.SERVER_VARS[server].singlesDict):
                                     
                                     member = self.bot.get_guild(server).get_member(memberID)
                                     role = get(member.guild.roles, name=str(self.get_setting(server, 'ROLE_1VS1')))
@@ -817,7 +823,8 @@ class Controller(commands.Cog):
                         
                             if role:
                                 # remove old role members
-                                for memberID in list(self.SERVER_VARS[server].doublesDict):
+                                matchMaker = self.bot.get_cog("MatchMaking")
+                                for memberID in list(matchMaker.SERVER_VARS[server].doublesDict):
                                     
                                     member = self.bot.get_guild(server).get_member(memberID)
                                     role = get(member.guild.roles, name=str(self.get_setting(server, 'ROLE_2VS2')))
@@ -1181,7 +1188,279 @@ class Controller(commands.Cog):
             await message.channel.delete_messages(cleanup)
         elif len(cleanup) == 1:
             await cleanup[0].delete()
+    
+    @commands.command()
+    async def reset(self, ctx):
+        '''Command to reset all settings to default.
+        Current custom commands will not be removed.
+        
+        :param ctx: context of command call
+        '''
+        
+         
+        user = ctx.message.author
+        message = ctx.message
+        server = message.guild.id
+                
+        if await self.checkPermissions(user, message.channel):
+            self._print(server, str(user.name) + ":" + str(user.id) + " used command: reset", cog=self.COG_NAME)
+            self._print(server, "resetting to default.", cog=self.COG_NAME) 
+            
+            oldMainChannel = self.bot.get_channel(self.get_setting(server, 'MAINCHANNEL'))
+            saveCMD = False
+            saveDmCMD = False
+            
+            # remove server from save file
+            with open(self.SETTINGS_FILE, "r+") as read_file:
+                data = json.load(read_file)
+                
+                if str(server) in list(data):
+                    # keep commands saved
+                    if 'COMMANDS' in list(data[str(server)]):
+                        saveCMD = data[str(server)]['COMMANDS']
+                    if 'DM_COMMANDS' in list(data[str(server)]):
+                        print("yes")
+                        saveDmCMD = data[str(server)]['DM_COMMANDS']
+                    
+                    del data[str(server)]
+                    
+                read_file.seek(0)
+                json.dump(data, read_file, indent=4)
+                read_file.truncate()
+                
+                self.SETTINGS = data
+                
+                if saveCMD:
+                    self.update_settings(server, 'COMMANDS', saveCMD)
+                if saveDmCMD:
+                    self.update_settings(server, 'DM_COMMANDS', saveDmCMD)
+            
+            if oldMainChannel:
+                # delete old messages
+                self._print(server,'Purge old messages', cog=self.COG_NAME)
+                await oldMainChannel.purge(limit=100, check=self.is_me)
+                
+            self.SERVER_VARS[server].activeMessage = False
+            
+            await self.notify(message.channel, "{} Einstellungen wurden zurückgesetzt. Bitte erneut den Hauptkanal und die 1vs1/2vs2 Rollen setzen.".format(user.mention), 7)
+            
+            
+        await message.delete()
+    
+    @commands.command()
+    async def settings(self, ctx):
+        '''Command to send a direct message to the user containing all current settings.
+        
+        :param ctx: context of command call
+        '''
+        
+         
+        user = ctx.message.author
+        message = ctx.message
+        server = message.guild.id
+         
+        if await self.checkPermissions(user, message.channel):
+            
+            self._print(server, str(user.name) + ":" + str(user.id) + " used command: settings", cog=self.COG_NAME)
+            
+            MAINCHANNEL = self.get_setting(server, 'MAINCHANNEL') 
+            PREFIX = str(self.get_setting(server, 'PREFIX'))
+            MESSAGE_INTERVAL = self.get_setting(server, 'MESSAGE_INTERVAL')
+            MESSAGE_CONTENT = self.get_setting(server, 'MESSAGE_CONTENT')
+            MESSAGE_REPOST_TIME = self.get_setting(server, 'MESSAGE_REPOST_TIME')
+            REACTION_1VS1 = self.get_setting(server, 'REACTION_1VS1')
+            REACTION_2VS2 = self.get_setting(server, 'REACTION_2VS2')
+            ROLE_1VS1 = str(self.get_setting(server, 'ROLE_1VS1'))
+            ROLE_2VS2 = str(self.get_setting(server, 'ROLE_2VS2'))
+            ROLE_TIMEOUT = self.get_setting(server, 'ROLE_TIMEOUT')
+            CHECK_INTERVAL_ROLES = self.get_setting(server, 'CHECK_INTERVAL_ROLES')
+            CHECK_INTERVAL_REPOST = self.get_setting(server, 'CHECK_INTERVAL_REPOST')
+                
+            embed = discord.Embed(title="AKTUELLE EINSTELLUNGEN[" + message.guild.name + "]:", description="Folgene einstellungen wurden vorgenommen:  ", color=0x00ff00)
+            
+            embed.add_field(name="MAINCHANNEL:    \n" + str(MAINCHANNEL), value="ID des Kanals, in dem der Bot genutzt wird.", inline=False)
+            
+            embed.add_field(name="PREFIX:    \n" + str(PREFIX), value="Prefix vor Befehlen.", inline=False)
+            
+            embed.add_field(name="MESSAGE_INTERVAL:    \n" + str(MESSAGE_INTERVAL), value="Anzahl der Nachrichten, nach der der Bot automatisch erneut postet.", inline=False)
+            
+            embed.add_field(name="MESSAGE_CONTENT: \n" + str(MESSAGE_CONTENT), value="Inhalt der Hauptnachricht.", inline=False)
+            
+            embed.add_field(name="MESSAGE_REPOST_TIME:    \n" + str(MESSAGE_REPOST_TIME) + " (" + str(datetime.timedelta(seconds=MESSAGE_REPOST_TIME)) + ")", value="Zeit, nach der der Bot automatisch erneut postet. (In Sekunden)", inline=False)
+            
+            embed2 = discord.Embed(color=0x00ff00)
+            
+            embed2.add_field(name="REACTION_1VS1:    \n" + str(REACTION_1VS1), value="Reaktionsemoji zum suchen eines 1vs1.", inline=False)
+            
+            embed2.add_field(name="REACTION_2VS2:    \n" + str(REACTION_2VS2), value="Reaktionsemoji zum suchen eines 2vs2.", inline=False)
+            
+            embed2.add_field(name="ROLE_1VS1:    \n" + str(ROLE_1VS1), value="Name der Rolle für 1vs1 Suchende.", inline=False)
+            
+            embed2.add_field(name="ROLE_2VS2:    \n" + str(ROLE_2VS2), value="Name der Rolle für 2vs2 Suchende.", inline=False)
+            
+            embed2.add_field(name="ROLE_TIMEOUT:    \n" + str(ROLE_TIMEOUT) + " (" + str(datetime.timedelta(seconds=ROLE_TIMEOUT)) + ")", value="Zeit, nach der die Rollen automatisch entfernt werden. (In Sekunden)", inline=False)
+            
+            embed2.add_field(name="CHECK_INTERVAL_ROLES:    \n" + str(CHECK_INTERVAL_ROLES) + " (" + str(datetime.timedelta(seconds=CHECK_INTERVAL_ROLES)) + ")", value="Zeitabstand, nach dem der Bot regelmäßig die Rollen auf Timeouts überprüft. (In Sekunden)", inline=False)
+            
+            embed2.add_field(name="CHECK_INTERVAL_REPOST:    \n" + str(CHECK_INTERVAL_REPOST) + " (" + str(datetime.timedelta(seconds=CHECK_INTERVAL_REPOST)) + ")", value="Zeitabstand, nach dem der Bot regelmäßig prüft, ob genügend Zeit vergangen ist, um eine neue Nachricht zu posten. (In Sekunden)", inline=False)
+            
+            await user.send(embed=embed)
+            await user.send(embed=embed2)
+            # await notify(message.channel, "{} noch nicht implementiert.".format(user.mention))
+        await asyncio.sleep(5)
+        await message.delete()
+    
+    @commands.command()
+    async def help(self, ctx, *args):
+        '''Command to send a direct message to the user containing all possible commands.
+        
+        :param ctx: context of command call
+        '''
+          
+        user = ctx.message.author
+        message = ctx.message
+        server = message.guild.id
+        
+        if await self.checkPermissions(user, message.channel):
+            
+            self._print(server, str(user.name) + ":" + str(user.id) + " used command: help " + " ".join(args), cog=self.COG_NAME)
+            
+            prefix = str(self.get_setting(server, 'PREFIX'))
+            
+            if len(args) == 0:
+            
+                helpStr  =          "```" 
+                helpStr +=          "ACHTUNG: \n"
+                helpStr +=          " \n"
+                helpStr +=          "Bevor der Bot funktioniert müssen folgende Befehle ausgeführt werden: \n"
+                helpStr +=          " \n"
+                helpStr += "   " + prefix + "set role 1vs1 <value>    Setzt Rolle der 1vs1 Suchenden. <value> als Rollennamen.\n"
+                helpStr += "   " + prefix + "set role 2vs2 <value>    Setzt Rolle der 2vs2 Suchenden. <value> als Rollennamen.\n"
+                helpStr += "   " + prefix + "mainChannel   Setzt den aktuellen Kanal als Hauptkanal, in dem der Bot aktiv ist.\n"
+                helpStr +=          " \n"
+                helpStr +=          "Befehle: \n"
+                helpStr +=          " \n"
+                helpStr += prefix + "1vs1          Gibt die Rolle 1vs1 und benachrichtigt alle mit dieser Rolle.\n"
+                helpStr += prefix + "2vs2          Gibt die Rolle 2vs2 und benachrichtigt alle mit dieser Rolle.\n"
+                helpStr += prefix + "roll          Würfelt eine Zahl zwischen 0 und 9.\n"
+                helpStr += prefix + "mainChannel   Setzt den Kanal als Hauptkanal, in dem der Bot aktiv ist.\n"
+                helpStr += prefix + "set           Setzt die einzelnen Einstellungen. Mögliche Optionen: " + prefix + "help set\n" 
+                helpStr += prefix + "get           Fragt den aktuellen Wert der Einstellungen ab. Unteroptionen analog zu set.\n"
+                helpStr += prefix + "reset         Setzt alle Einstellungen auf den Standartwert zurück.\n"
+                helpStr += prefix + "settings      Schickt eine private Nachricht an den Nutzer mit den Aktuellen Einstellungen.\n"
+                helpStr += prefix + "commands      Schickt eine private Nachricht an den Nutzer mit allen Custom Befehlen.\n"
+                helpStr += prefix + "post          Postet die Hauptnachricht erneut.\n"
+                helpStr += prefix + "version       Postet die Version des Bots.\n"
+                helpStr +=          "```"
+                
+                await user.send(helpStr)
+                
+                
+            elif len(args) == 1 and args[0] == 'set':
+                
+                helpStr  =          "```" 
+                helpStr +=          "Set Befehl Hilfe: \n"
+                helpStr +=          " \n"
+                helpStr += prefix + "set prefix <value>                Setzt das Prefix. <value> muss einzelnes Zeichen sein.\n"
+                helpStr += prefix + "set message content               Ändert die Hauptnachricht.\n"
+                helpStr += prefix + "set message timer <value>         Setzt die Zeit, nach der erneut gepostet wird. <value>\n"
+                helpStr +=          "                                   in Sekunden.\n"
+                helpStr += prefix + "set message interval <value>      Setzt die Zahl der Nachrichten, nach der erneut gepostet \n"
+                helpStr +=          "                                   wird. <value> als Zahl. \n"
+                helpStr += prefix + "set reaction 1vs1                 Ändert die 1vs1 Reaktion.\n"
+                helpStr += prefix + "set reaction 2vs2                 Ändert die 1vs1 Reaktion.\n"
+                helpStr += prefix + "set role 1vs1 <value>             Setzt Rolle der 1vs1 Suchenden. <value> als Rollennamen.\n"
+                helpStr += prefix + "set role 2vs2 <value>             Setzt Rolle der 2vs2 Suchenden. <value> als Rollennamen.\n"
+                helpStr += prefix + "set role timeout <value>          Setzt die Zeit, nach der die Rollen aberkannt werden. \n"
+                helpStr +=          "                                   <value> in Sekunden. \n"
+                helpStr += prefix + "set command <value>               Fügt den Befehl <value> hinzu, bearbeitet oder löscht ihn.\n"
+                helpStr +=          "                                   Die Antwort des Befehls wird im gleichen Kanal gesendet.\n"
+                helpStr += prefix + "set dmcommand <value>             Fügt den Befehl <value> hinzu, bearbeitet oder löscht ihn.\n"
+                helpStr +=          "                                   Die Antwort des Befehls wird als Private Nachricht gesendet.\n"
+                helpStr +=          " \n"
+                helpStr +=          "v-----besser auf default lassen-----v \n"
+                helpStr += prefix + "set checkinterval roles <value>   Setzt das Intervall, in dem die Rollen überprüft werden.\n"
+                helpStr +=          "                                   <value> in Sekunden\n"
+                helpStr += prefix + "set checkinterval message <value> Setzt das Intervall, in dem die Message überprüft wird.\n"
+                helpStr +=          "                                   <value> in Sekunden\n"
+                helpStr +=          "```"
+                
+                await user.send(helpStr)
+            
+        await message.delete()
 
+    @commands.command()
+    async def commands(self, ctx, *args):
+        '''Command to send a direct message to the user containing all custom commands.
+        
+        :param ctx: context of command call
+        '''
+        
+        user = ctx.message.author
+        message = ctx.message
+        server = message.guild.id
+         
+        if await self.checkPermissions(user, message.channel):
+            
+            self._print(server, str(user.name) + ":" + str(user.id) + " used command: commands", cog=self.COG_NAME)
+            prefix = str(self.get_setting(server, 'PREFIX'))
+            cmdDict = self.get_setting(server, 'COMMANDS')
+            dmCmdDict = self.get_setting(server, 'DM_COMMANDS')
+            
+            
+            if len(args) == 0:
+                
+                
+                
+                helpStr  =          "```" 
+                helpStr +=          "[" + str(message.guild.name) + "] \n" 
+                helpStr +=          "Liste aller Custom-Befehle, die im selben Kanal antworten: \n"
+                helpStr +=          " \n"
+                
+                for command in list(cmdDict):
+                    helpStr += "   " + prefix + str(command) + " \n"
+                
+                helpStr +=          " \n"
+                helpStr +=          "Custom-Befehle, die als Antwort Private Nachrichten senden: \n"
+                helpStr +=          " \n"
+                
+                for command in list(dmCmdDict):
+                    helpStr += "   " + prefix + str(command) + " \n"
+                
+                helpStr +=          " \n"
+                helpStr +=          "Um mehr Informationen zu einem Befehl zu erhalten, einfach \n"
+                helpStr += "   " + prefix + "commands <name of command> \n"
+                helpStr +=          "ohne das Prefix des gewünschten Befehls eingeben. \n"
+                helpStr +=          "```" 
+                
+                
+                await user.send(helpStr)
+                
+                
+            elif len(args) == 1:
+                
+                command = args[0]
+                
+                if command in list(cmdDict):
+                    
+                    helpStr =          "```Befehl " + prefix +command + ": ```"
+                    helpStr +=          cmdDict[command]
+                    helpStr +=          " ```Ende des Befehls. ```\n"
+                    await user.send(helpStr)
+                
+                elif command in list(dmCmdDict):
+                    
+                    helpStr =          "```Befehl " + prefix +command + ": ```"
+                    helpStr +=          dmCmdDict[command]
+                    helpStr +=          " ```Ende des Befehls. ```\n"
+                    await user.send(helpStr)
+                    
+                else:
+                    await self.notify(message.channel, "{} dieser Befehl existiert nicht.".format(user.mention))
+            else:
+                await self.notify(message.channel, "{} dieser Befehl existiert nicht.".format(user.mention))
+        await message.delete()
+    
     
 def setup(bot):
     bot.add_cog(Controller(bot))

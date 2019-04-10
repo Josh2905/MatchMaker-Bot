@@ -20,15 +20,17 @@ COMMANDS = ["1vs1","2vs2","mainChannel","set","get","reset", "settings", "post",
 # dynamic prefixes
 def get_prefix(bot, message):
     '''This method enables the use of custom Prefixes set by the user.'''
-    serverid = str(message.guild.id)
-    with open(SETTINGS_FILE) as f:
-        data = json.load(f)
-    
-    if serverid in list(data) and 'PREFIX' in list(data[serverid]):
-        prefix = data[serverid]['PREFIX']
+    if message.guild is not None:
+        serverid = str(message.guild.id)
+        with open(SETTINGS_FILE) as f:
+            data = json.load(f)
+        
+        if serverid in list(data) and 'PREFIX' in list(data[serverid]):
+            prefix = data[serverid]['PREFIX']
+        else:
+            prefix = "!"
     else:
         prefix = "!"
-    
     return prefix
 
 bot = commands.Bot(command_prefix=get_prefix)
