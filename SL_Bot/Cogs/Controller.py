@@ -423,11 +423,13 @@ class Controller(commands.Cog):
             self._print("init","load looped tasks", cog=self.COG_NAME)
             for server in self.bot.guilds:
                 self.loadLoopRoutines(server)
+            self._print("init",'------', cog=self.COG_NAME)
+            self._print("init","load cogs", cog=self.COG_NAME)
             
             for cogName in self.SERVER_COGS:
                 cog = self.bot.get_cog(cogName)
                 await cog.init_on_error()
-                    
+            self._print("init",'------', cog=self.COG_NAME)        
             self.initialized = True
         self._print("init",'Initialization complete', cog=self.COG_NAME)
         self._print("init",'------', cog=self.COG_NAME)
