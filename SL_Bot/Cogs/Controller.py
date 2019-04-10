@@ -21,8 +21,8 @@ from discord.ext import commands
 from discord.utils import get
 
 class Controller(commands.Cog):
-    '''This Cog implements a general interface with common methods.
-    Also acts as an accessor to the settigns file.
+    '''
+    classdocs
     '''
     
     class ServerNode():
@@ -45,7 +45,7 @@ class Controller(commands.Cog):
     ####################################################################################################
     ##DEFAULTS##
     ####################################################################################################
-    VERSION = "1.2.0"
+    VERSION = "1.1.2"
     
     AUTHOR_ID = 90043934247501824
     SETTINGS_FILE = 'settings.json'
@@ -86,7 +86,7 @@ class Controller(commands.Cog):
     
     SERVER_VARS = {}
     SETTINGS = {}
-    SERVER_COMMANDS = ["1vs1","2vs2","mainChannel","set","get","reset", "settings", "post", "commands", "help", "version", "restart", "roll", "reloadSettings", "debug"]
+    SERVER_COMMANDS = ["1vs1","2vs2","mainChannel","set","get","reset", "settings", "post", "commands", "help", "version", "restart", "roll", "reloadSettings"]
     SERVER_COGS = ["MatchMaking"]
     COG_NAME = "Controller"
     initialized = False
@@ -383,7 +383,7 @@ class Controller(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         '''Executed at the startup of the bot.
-        Creates initial state and loads the cogs.
+        Creates initial state, adds old roles to the tracker dicts and posts main message.
         '''
                 
         if not self.initialized:
@@ -1388,74 +1388,6 @@ class Controller(commands.Cog):
                 await user.send(helpStr)
             
         await message.delete()
-    
-    @commands.command()
-    async def version(self, ctx):
-        '''Command to get current version.
-        
-        :param ctx: context of command call
-        '''
-        
-        user = ctx.message.author
-        message = ctx.message
-        server = ctx.message.guild.id
-        
-        if await self.checkPermissions(user, message.channel):
-            
-            self._print(server, str(user.name) + ":" + str(user.id) + " used command: version ", cog=self.COG_NAME)
-            await self.notify(message.channel, "Aktuell genutzte Version: " + self.VERSION, 5) 
-        
-        await message.delete()
-    
-    @commands.command()
-    async def restart(self, ctx):
-        '''Command to restart the bot.
-        Only Creator has permissions for this as it affects all connected servers.
-        
-        :param ctx: context of command call
-        '''
-        
-        user = ctx.message.author
-        message = ctx.message
-        
-        if await self.checkPermissions(user, message.channel, creator=True):
-            await message.delete()
-            #bot.loop.close()
-            #await bot.logout()
-            await self.bot.close()
-        else:    
-            await message.delete()
-    
-    @commands.command()
-    async def reloadSettings(self, ctx):
-        '''Command to reload the settings file.
-        Only Creator has permissions for this.
-        
-        :param ctx: context of command call
-        '''
-        
-        user = ctx.message.author
-        message = ctx.message
-        
-        if await self.checkPermissions(user, message.channel, creator=True):
-            self.init_settings()
-            await message.delete()
-        else:    
-            await message.delete()
-    
-    @commands.command()
-    async def debug(self, ctx):
-        '''Executes debug code.
-        
-        :param ctx: context of command call
-        '''
-        
-        user = ctx.message.author
-        message = ctx.message
-        
-        if await self.checkPermissions(user, message.channel, creator=True):
-            print("DEBUG")
-            await message.delete()
 
     @commands.command()
     async def commands(self, ctx, *args):
