@@ -9,13 +9,38 @@ from discord.utils import get
 import datetime
 import traceback
 from functools import partial
+from collections import deque
+
 
 class MatchMaking(commands.Cog):
     '''
     classdocs
     '''
-
-
+    class serverNode():
+        '''This class is used to store variables for each connected Server.'''
+        
+        def __init__(self, _id):
+            self.id = _id
+            self.msgCounter = 0
+            self.activeMessage = False
+            self.singlesDict = {}
+            self.doublesDict = {}
+            self.searchMessageSinglesDict = {}
+            self.searchMessageDoublesDict = {}
+            self.msgTimer = datetime.datetime.utcnow()
+            
+            #last 10 messages as a stack
+            self.lastMsgStack = deque(maxlen=10)
+            
+            #bools to keep track of running coroutines
+            self.checkTimeout = False
+            self.repostMessage = False
+            
+    SERVER_VARS = {}
+    COG_NAME = "MatchMaking"
+    SERVER_COMMANDS = []
+    initialized = False
+    
     def __init__(self, bot):
         self.bot = bot
         self.controller = self.bot.get_cog('Controller')
@@ -62,13 +87,13 @@ class MatchMaking(commands.Cog):
             alert = "sucht nach einem 1vs1 Match! {}".format(role.mention)
             msg = await channel.send(user.mention + " " + alert)
             # await msg.add_reaction(REACTION_CANCEL)
-            self.controller.SERVER_VARS[server].searchMessageSinglesDict[user.id] = (channel.id, msg.id)
+            self.SERVER_VARS[server].searchMessageSinglesDict[user.id] = (channel.id, msg.id)
         
         elif role == role2vs2:
             alert = "sucht nach einem 2vs2 Match! {}".format(role.mention)
             msg = await channel.send(user.mention + " " + alert)
             # await msg.add_reaction(REACTION_CANCEL)
-            self.controller.SERVER_VARS[server].searchMessageDoublesDict[user.id] = (channel.id, msg.id)
+            self.SERVER_VARS[server].searchMessageDoublesDict[user.id] = (channel.id, msg.id)
     
     async def singles(self, user, role, message):
         '''This method adds/removes a role from a discord servber member, informs him of that fact, removes the message together with its own 
@@ -90,13 +115,13 @@ class MatchMaking(commands.Cog):
                 except AttributeError:
                     pass
                 await self.notify(message.channel, "{} du hast nicht mehr die Rolle ".format(user.mention) + str(self.controller.get_setting(server, 'ROLE_1VS1')) + ".", timeout=5)
-                self.controller._print(server, "removed 1vs1 role from " + str(user.name))
+                self.controller._print(server, "removed 1vs1 role from " + str(user.name), cog=self.COG_NAME)
             else:
                 # grant user role
                 await user.add_roles(role)
                 await self.notifySearch(message.channel, user, role)
                 # await notify(message.channel, "{0} du hast nun die Rolle ".format(user.mention) + str(get_setting(server, 'ROLE_1VS1')) + ".")
-                self.controller._print(server, "applied 1vs1 role to " + str(user.name))
+                self.controller._print(server, "applied 1vs1 role to " + str(user.name), cog=self.COG_NAME)
         else:
             await self.notify(message.channel, "{0} diese Rolle existiert nicht mehr. Bitte erneut setzen. (!help)".format(user.mention))
         
@@ -120,13 +145,13 @@ class MatchMaking(commands.Cog):
                 except AttributeError:
                     pass
                 await self.notify(message.channel, "{} du hast nicht mehr die Rolle ".format(user.mention) + str(self.controller.get_setting(server, 'ROLE_2VS2')) + ".", timeout=5)
-                self.controller._print(server, "removed 2vs2 role from " + str(user.name))
+                self.controller._print(server, "removed 2vs2 role from " + str(user.name), cog=self.COG_NAME)
             else:
                 # grant user role
                 await user.add_roles(role)
                 await self.notifySearch(message.channel, user, role)
                 # await notify(message.channel, "{} du hast nun die Rolle ".format(user.mention) + str(get_setting(server, 'ROLE_2VS2')) + ".")
-                self.controller._print(server, "applied 2vs2 role to " + str(user.name))
+                self.controller._print(server, "applied 2vs2 role to " + str(user.name), cog=self.COG_NAME)
         else:
             await self.notify(message.channel, "{0} diese Rolle existiert nicht mehr. Bitte erneut setzen. (!help)".format(user.mention))
     
@@ -141,15 +166,15 @@ class MatchMaking(commands.Cog):
         if channel and self.controller.is_setup(server):
             
             #remove old message
-            if self.controller.SERVER_VARS[server].activeMessage:
-                await self.controller.SERVER_VARS[server].activeMessage.delete()
+            if self.SERVER_VARS[server].activeMessage:
+                await self.SERVER_VARS[server].activeMessage.delete()
                   
             # send message
-            self.controller.SERVER_VARS[server].msgTimer = datetime.datetime.utcnow()
-            self.controller.SERVER_VARS[server].msgCounter = 0
+            self.SERVER_VARS[server].msgTimer = datetime.datetime.utcnow()
+            self.SERVER_VARS[server].msgCounter = 0
             
             msg = await channel.send(self.controller.get_setting(server, 'MESSAGE_CONTENT'))
-            self.controller.SERVER_VARS[server].activeMessage = msg
+            self.SERVER_VARS[server].activeMessage = msg
             
             #add reactions
             r1v1 = get(self.bot.emojis, name = self.controller.get_setting(server, 'REACTION_1VS1'))
@@ -163,15 +188,31 @@ class MatchMaking(commands.Cog):
             
             await msg.add_reaction(r1v1)
             await msg.add_reaction(r2v2)
-            self.controller._print(server, "posting main message")
+            self.controller._print(server, "posting main message", cog=self.COG_NAME)
             
             return msg
             
         else:
-            self.controller._print(server, "could not post message: server not fully set up")
+            self.controller._print(server, "could not post message: server not fully set up", cog=self.COG_NAME)
             
             return None
-
+    
+    def is_command(self, cmd, server):
+        '''Return, if a command with this name exists.
+        
+        :param cmd: Command name
+        :param server: Server ID
+        '''
+        if len(cmd) > 1 and cmd[0] == str(self.controller.get_setting(server, 'PREFIX')):
+                
+            command = cmd[1:]
+            
+            mainCommand = command.split(" ", 1)[0]
+            
+            if mainCommand in self.SERVER_COMMANDS:
+                return True
+        return False
+    
     #===============================================================================
     # looped routines    
     #===============================================================================
@@ -187,16 +228,16 @@ class MatchMaking(commands.Cog):
             
             
             if self.controller.initialized and self.is_setup(server) and (not self.controller.get_setting(server, 'MAINCHANNEL') == self.controller.get_setting('DEFAULTS', 'MAINCHANNEL')):
-                if len(list(self.controller.SERVER_VARS[server].singlesDict)) + len(list(self.controller.SERVER_VARS[server].doublesDict)) > 0:
-                    self.controller._print(server, "checking for role timeouts:", log=False)
+                if len(list(self.SERVER_VARS[server].singlesDict)) + len(list(self.SERVER_VARS[server].doublesDict)) > 0:
+                    self.controller._print(server, "checking for role timeouts:", log=False, cog=self.COG_NAME)
                     
                     srvr = self.bot.get_guild(server)
                     
-                    for member in list(self.controller.SERVER_VARS[server].singlesDict):
-                        difference = datetime.datetime.utcnow() - self.controller.SERVER_VARS[server].singlesDict[member]
+                    for member in list(self.SERVER_VARS[server].singlesDict):
+                        difference = datetime.datetime.utcnow() - self.SERVER_VARS[server].singlesDict[member]
                         difference -= datetime.timedelta(microseconds=difference.microseconds)
                         user = get(srvr.members, id=member)
-                        self.controller._print(server, "| " + str(user) + " 1vs1 (" + str(difference) + "/" + str(str(datetime.timedelta(seconds=self.controller.get_setting(server, 'ROLE_TIMEOUT')))) + ")", log=False)
+                        self.controller._print(server, "| " + str(user) + " 1vs1 (" + str(difference) + "/" + str(str(datetime.timedelta(seconds=self.controller.get_setting(server, 'ROLE_TIMEOUT')))) + ")", log=False, cog=self.COG_NAME)
                         if difference.total_seconds() > self.controller.get_setting(server, 'ROLE_TIMEOUT'):
                             
                             role = get(srvr.roles, name=str(self.controller.get_setting(server, 'ROLE_1VS1')))
@@ -206,13 +247,13 @@ class MatchMaking(commands.Cog):
                             except AttributeError:
                                 pass
                             await asyncio.sleep(1)  #needed for no weird behaviour
-                            self.controller._print(server, "timeout: removed 1vs1 from " + str(user))
+                            self.controller._print(server, "timeout: removed 1vs1 from " + str(user), cog=self.COG_NAME)
                     
-                    for member in list(self.controller.SERVER_VARS[server].doublesDict):
-                        difference = datetime.datetime.utcnow() - self.controller.SERVER_VARS[server].doublesDict[member]
+                    for member in list(self.SERVER_VARS[server].doublesDict):
+                        difference = datetime.datetime.utcnow() - self.SERVER_VARS[server].doublesDict[member]
                         difference -= datetime.timedelta(microseconds=difference.microseconds)
                         user = get(srvr.members, id=member)
-                        self.controller._print(server, str(user) + " 2vs2 (" + str(difference) + "/" + str(str(datetime.timedelta(seconds=self.controller.get_setting(server, 'ROLE_TIMEOUT')))) + ")", log=False)
+                        self.controller._print(server, str(user) + " 2vs2 (" + str(difference) + "/" + str(str(datetime.timedelta(seconds=self.controller.get_setting(server, 'ROLE_TIMEOUT')))) + ")", log=False, cog=self.COG_NAME)
                         if difference.total_seconds() > self.controllerget_setting(server, 'ROLE_TIMEOUT'):
                             
                             role = get(srvr.roles, name=str(self.controller.get_setting(server, 'ROLE_2VS2')))
@@ -222,7 +263,7 @@ class MatchMaking(commands.Cog):
                             except AttributeError:
                                 pass
                             await asyncio.sleep(1)
-                            self.controller._print(server, "timeout: removed 2vs2 from " + str(user))
+                            self.controller._print(server, "timeout: removed 2vs2 from " + str(user), cog=self.COG_NAME)
                           
             await asyncio.sleep(self.controller.get_setting(server, 'CHECK_INTERVAL_ROLES')) #seconds
     
@@ -235,15 +276,15 @@ class MatchMaking(commands.Cog):
         while not self.bot.is_closed():
             
             
-            if len(self.controller.SERVER_VARS[server].lastMsgStack) > 0 and self.controller.initialized and self.is_setup(server) and self.controller.SERVER_VARS[server].activeMessage and (not self.controller.get_setting(server, 'MAINCHANNEL') == self.controller.get_setting('DEFAULTS', 'MAINCHANNEL')):
+            if len(self.SERVER_VARS[server].lastMsgStack) > 0 and self.controller.initialized and self.is_setup(server) and self.SERVER_VARS[server].activeMessage and (not self.controller.get_setting(server, 'MAINCHANNEL') == self.controller.get_setting('DEFAULTS', 'MAINCHANNEL')):
                 
-                timeDifference = datetime.datetime.utcnow() - self.controller.SERVER_VARS[server].msgTimer
+                timeDifference = datetime.datetime.utcnow() - self.SERVER_VARS[server].msgTimer
                 timeLimit = self.controller.get_setting(server, 'MESSAGE_REPOST_TIME')
                               
-                if not (self.controller.SERVER_VARS[server].lastMsgStack[-1] == self.controller.SERVER_VARS[server].activeMessage.id):
-                    self.controller._print(server, "checking for message repost timeout (" + str(round(timeDifference.total_seconds(), 2)) + "/" + str(round(timeLimit, 2)) + ")", log=False)
+                if not (self.SERVER_VARS[server].lastMsgStack[-1] == self.SERVER_VARS[server].activeMessage.id):
+                    self.controller._print(server, "checking for message repost timeout (" + str(round(timeDifference.total_seconds(), 2)) + "/" + str(round(timeLimit, 2)) + ")", log=False, cog=self.COG_NAME)
                 else:
-                    self.controller.SERVER_VARS[server].msgTimer = datetime.datetime.utcnow()
+                    self.SERVER_VARS[server].msgTimer = datetime.datetime.utcnow()
                 
                 
                 if timeDifference.total_seconds() > timeLimit:          
@@ -253,7 +294,7 @@ class MatchMaking(commands.Cog):
                     lastMsg = None
                     
                     try:
-                        lastMsg = await channel.fetch_message(self.controller.SERVER_VARS[server].lastMsgStack[-1])
+                        lastMsg = await channel.fetch_message(self.SERVER_VARS[server].lastMsgStack[-1])
                     except IndexError:
                         pass
                     except Exception as e:
@@ -262,20 +303,20 @@ class MatchMaking(commands.Cog):
                     
                     if lastMsg is not None:
                                             
-                        if (not lastMsg.id == self.controller.SERVER_VARS[server].activeMessage.id) and (not self.controller.is_command(lastMsg.content, server)) and (not self.controller.is_custom_command(lastMsg.content, server)):
+                        if (not lastMsg.id == self.SERVER_VARS[server].activeMessage.id) and (not self.controller.is_command(lastMsg.content, server)) and (not self.controller.is_custom_command(lastMsg.content, server)):
                             
                             if self.is_me(lastMsg):
-                                differenceToLastMsg = lastMsg.created_at - self.controller.SERVER_VARS[server].msgTimer #timezone correction
+                                differenceToLastMsg = lastMsg.created_at - self.SERVER_VARS[server].msgTimer #timezone correction
                                 # if last msg was posted by bot, it takes at least 7 minutes to have discord display them as seperate messages.
                                 timeLimit = 430 + differenceToLastMsg.total_seconds()
-                                self.controller._print(server,"prolonging time limit to seperate messages (" + str(round(timeDifference.total_seconds(), 2)) + "/" + str(round(timeLimit, 2)) + ")", log=False)
+                                self.controller._print(server,"prolonging time limit to seperate messages (" + str(round(timeDifference.total_seconds(), 2)) + "/" + str(round(timeLimit, 2)) + ")", log=False, cog=self.COG_NAME)
                             
                             if timeDifference.total_seconds() > timeLimit:
-                                self.controller._print(server, "timeout: Reposting Message")
+                                self.controller._print(server, "timeout: Reposting Message", cog=self.COG_NAME)
                                 await self.postMessage(channel)
                         
                         else:
-                            self.controller.SERVER_VARS[server].msgTimer = datetime.datetime.utcnow()
+                            self.SERVER_VARS[server].msgTimer = datetime.datetime.utcnow()
                     
             await asyncio.sleep(self.controller.get_setting(server, 'CHECK_INTERVAL_REPOST'))
         
@@ -286,24 +327,24 @@ class MatchMaking(commands.Cog):
         '''
         
         def callback_checkTimeout(serverID, task):
-            self.controller.SERVER_VARS[serverID].checkTimeout = False
-            self.controller._print(server.id, "checkTimeout coro stopped \n!\n!\n!")
+            self.SERVER_VARS[serverID].checkTimeout = False
+            self.controller._print(server.id, "checkTimeout coro stopped \n!\n!\n!", cog=self.COG_NAME)
         def callback_repostMessage(serverID, task):
-            self.controller.SERVER_VARS[serverID].repostMessage = False
-            self.controller._print(server.id, "repostMessage coro stopped \n!\n!\n!")
+            self.SERVER_VARS[serverID].repostMessage = False
+            self.controller._print(server.id, "repostMessage coro stopped \n!\n!\n!", cog=self.COG_NAME)
         
         # add looped tasks to bot.
-        if not self.controller.SERVER_VARS[server.id].checkTimeout:
+        if not self.SERVER_VARS[server.id].checkTimeout:
             future1 = self.bot.loop.create_task(self.checkTimeout(server.id))
             future1.add_done_callback(partial(callback_checkTimeout, server.id))
-            self.controller.SERVER_VARS[server.id].checkTimeout = True
-            self.controller._print(server.id, "checkTimeout coro created")
+            self.SERVER_VARS[server.id].checkTimeout = True
+            self.controller._print(server.id, "checkTimeout coro created", cog=self.COG_NAME)
         
-        if not self.controller.SERVER_VARS[server.id].repostMessage:
+        if not self.SERVER_VARS[server.id].repostMessage:
             future2 = self.bot.loop.create_task(self.repostMessage(server.id))
             future2.add_done_callback(partial(callback_repostMessage, server.id))
-            self.controller.SERVER_VARS[server.id].repostMessage = True
-            self.controller._print(server.id, "repostMessage coro created")
+            self.SERVER_VARS[server.id].repostMessage = True
+            self.controller._print(server.id, "repostMessage coro created", cog=self.COG_NAME)
         
         if True:
             pass
@@ -313,39 +354,39 @@ class MatchMaking(commands.Cog):
     #===============================================================================
     
     async def initialize(self):
-        self.controller._print("MatchMaking",'initializing')
+        self.controller._print("init",'initializing', cog=self.COG_NAME)
         
         # initialize MainChannels
         for server in self.bot.guilds:
                         
-            self.controller._print(server.id,"initiating starting state")
+            self.controller._print(server.id,"initiating starting state", cog=self.COG_NAME)
             # check if server is properly set up
             if (not self.controller.get_setting(server.id, 'MAINCHANNEL') == self.controller.get_setting('DEFAULTS', 'MAINCHANNEL')) and self.is_setup(server.id):
                 
                 channel = self.bot.get_channel(self.controller.get_setting(server.id, 'MAINCHANNEL'))
                 
                 # delete old messages
-                self.controller._print(server.id,'Purge old messages')
+                self.controller._print(server.id,'Purge old messages', cog=self.COG_NAME)
                 await channel.purge(limit=100, check=self.is_me)
                 
                 
                 # post new message
-                self.controller._print(server.id,'Post message')
+                self.controller._print(server.id,'Post message', cog=self.COG_NAME)
                 await self.postMessage(channel)
                 
             else:
-                self.controller._print(server.id,"Matchmaking not fully set up")
+                self.controller._print(server.id,"Matchmaking not fully set up", cog=self.COG_NAME)
         
-        self._print("MatchMaking",'------')
+        self._print("init",'------', cog=self.COG_NAME)
         
-        self._print("MatchMaking","load looped tasks")
+        self._print("init","load looped tasks", cog=self.COG_NAME)
         
         for server in self.bot.guilds:
             self.loadLoopRoutines(server)  
           
-        self.controller._print("MatchMaking",'------')  
+        self.controller._print("init",'------', cog=self.COG_NAME)  
         
-        self.controller._print("MatchMaking",'Add old roles to timeout check')
+        self.controller._print("init",'Add old roles to timeout check', cog=self.COG_NAME)
             
         for server in self.bot.guilds:
             if (not self.controller.get_setting(server.id, 'MAINCHANNEL') == self.controller.get_setting('DEFAULTS', 'MAINCHANNEL')) and self.is_setup(server.id):
@@ -357,29 +398,41 @@ class MatchMaking(commands.Cog):
                     
                     for member in server.members:
                         if role1 in member.roles:
-                            self.controller.SERVER_VARS[server.id].singlesDict[member.id] = datetime.datetime.utcnow()
+                            self.SERVER_VARS[server.id].singlesDict[member.id] = datetime.datetime.utcnow()
                             await self.notifySearch(channel, member, role1)
                         if role2 in member.roles:
-                            self.controller.SERVER_VARS[server.id].doublesDict[member.id] = datetime.datetime.utcnow()
+                            self.SERVER_VARS[server.id].doublesDict[member.id] = datetime.datetime.utcnow()
                             await self.notifySearch(channel, member, role2)
         
-        self.controller._print("MatchMaking",'------') 
+        self.controller._print("init",'------', cog=self.COG_NAME)
+        
+        self.initialized = True
+        self.controller._print("init",'Cog Initialized', cog=self.COG_NAME)
+        self.controller._print("init",'------', cog=self.COG_NAME) 
  
     async def init_on_error(self):
-        self._print("MatchMaking","load looped tasks")
+        
+        self.initialized = False
+        self._print("init","load looped tasks", cog=self.COG_NAME)
         for server in self.bot.guilds:
             self.loadLoopRoutines(server)
         
-        self._print("MatchMaking",'------')
+        self._print("init",'------', cog=self.COG_NAME)
+        
+        self._print("init",'posting messages:', cog=self.COG_NAME)
+       
         for server in self.bot.guilds:
             if (not self.controller.get_setting(server.id, 'MAINCHANNEL') == self.controller.get_setting('DEFAULTS', 'MAINCHANNEL')) and self.is_setup(server.id):
                 channel = self.bot.get_channel(self.controller.get_setting(server.id, 'MAINCHANNEL'))
                 # post new message
-                self.controller._print(server.id,'Post message')
+                self.controller._print(server.id,'Post message', cog=self.COG_NAME)
                 msg = await self.postMessage(channel)
-                self.controller.SERVER_VARS[server.id].lastMsgStack.append(msg.id)
-        self.controller._print("MatchMaking",'------')
+                self.SERVER_VARS[server.id].lastMsgStack.append(msg.id)
         
+        self.controller._print("init",'------', cog=self.COG_NAME)
+        self.initialized = True
+        self.controller._print("init",'Cog Initialized', cog=self.COG_NAME)
+        self.controller._print("init",'------', cog=self.COG_NAME) 
         if True:
             pass
     
@@ -388,16 +441,78 @@ class MatchMaking(commands.Cog):
     #===============================================================================
     
     @commands.Cog.listener()
-    async def on_ready(self):
-        '''Executed at the startup of the bot.
+    async def on_guild_join(self, server):
+        self.controller._print(server.id,'loading looped routines', cog=self.COG_NAME)
+        self.loadLoopRoutines(server)
+    
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        '''Gets called when messages are posted.
+        
+        Counts messages until a new MainMessage has to be posted.
+        '''
+        if self.initialized and not message.guild == None:
+            server = message.guild.id
+            
+            #keep track of last message
+            if (message.channel.id == self.controller.get_setting(server, 'MAINCHANNEL')):
+                self.SERVER_VARS[server].lastMsgStack.append(message.id)
+                
+            # ignore own messages
+            if message.author == self.bot.user or message.author.bot:
+                return
+            
+            # check if user is already in a command process
+            if message.author in self.controller.SERVER_VARS[server].cmdLockout:
+                return    
+            
+            # ignore actual commands
+            if self.is_command(message.content, server):
+                return    
+            
+            # post a message after each Nth message in the channel
+            if (message.channel.id == self.controller.get_setting(server, 'MAINCHANNEL')):
+                
+                self.SERVER_VARS[server].msgCounter += 1 
+                
+                #debug
+                self.controller._print(server, "message counter: (" + str(self.SERVER_VARS[server].msgCounter) + "/" + str(self.controller.get_setting(server, 'MESSAGE_INTERVAL')) + ")", log=False, cog=self.COG_NAME)
+                
+                if self.SERVER_VARS[server].msgCounter >= self.controller.get_setting(server, 'MESSAGE_INTERVAL'):
+                    self.controller._print(server, "message counter maximum reached", cog=self.COG_NAME)
+                    
+                    lastMsg = None
+                    try:
+                        # this part sometimes raises Internal server errors on discords side.
+                        async for msg in message.channel.history(limit=1):
+                            lastMsg = msg
+                    except Exception as e:
+                        print(traceback.print_exc())
+                        self.controller.logger.exception("Uncaught exception: {0}".format(str(e)))
+                                    
+                    if (lastMsg is not None) and not self.controller.is_me(lastMsg):
+                        
+                        await self.postMessage(message.channel)
+                        
+                        # reset counter
+                        self.SERVER_VARS[server].msgCounter = 0
+                    else: 
+                        self.controller._print(server, "Last message was from bot, waiting for one more.", cog=self.COG_NAME)
+    
+    @commands.Cog.listener()
+    async def on_message_delete(self, message):
+        '''Gets called when messages are deleted.
+        
+        removes messages from lastMsgStack.
         '''
         
-    @commands.Cog.listener()
-    async def on_member_join(self, member):
-        channel = member.guild.system_channel
-        if channel is not None:
-            await channel.send('Welcome {0.mention}.'.format(member))
-
+        if self.initialized and not message.guild == None:
+            server = message.guild.id
+                    
+            if (message.channel.id == self.controller.get_setting(server, 'MAINCHANNEL')):
+                if message.id in self.SERVER_VARS[server].lastMsgStack:
+                    self.SERVER_VARS[server].lastMsgStack.remove(message.id)
+                
     @commands.command()
     async def testdebug(self, ctx):
         """Says hello"""

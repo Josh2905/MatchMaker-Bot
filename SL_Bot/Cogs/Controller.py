@@ -19,12 +19,28 @@ from logging.handlers import TimedRotatingFileHandler
 import discord
 from discord.ext import commands
 from discord.utils import get
-from SL_Bot.ServerNode import serverNode
 
 class Controller(commands.Cog):
     '''
     classdocs
     '''
+    
+    class serverNode():
+        '''This class is used to store variables for each connected Server.'''
+        
+        def __init__(self, _id):
+            self.id = _id
+            
+            #bools to keep track of running coroutines
+            self.commandTimeout = False
+            
+            self.cmdLockout = []
+            
+            # active commands
+            self.msg1vs1 = False
+            self.msg2vs2 = False
+    
+    
     
     ####################################################################################################
     ##DEFAULTS##
@@ -72,6 +88,7 @@ class Controller(commands.Cog):
     SETTINGS = {}
     SERVER_COMMANDS = ["1vs1","2vs2","mainChannel","set","get","reset", "settings", "post", "commands", "help", "version", "restart"]
     SERVER_COGS = ["MatchMaking"]
+    COG_NAME = "Controller"
     initialized = False
     
     logger = logging.getLogger('discord')
@@ -84,7 +101,7 @@ class Controller(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
     
-    def _print(self, server, message, log=True):
+    def _print(self, server, message, log=True, cog=False):
         '''A custom print command, that adds additional formatting to the output and also logs it with a logger.
         
         :param server: Server ID performing the action to be logged.
@@ -93,6 +110,10 @@ class Controller(commands.Cog):
         '''
         logStr = "<" + str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ">"
         serverObj = self.bot.get_guild(server)
+        
+        if cog:
+            logStr += "[" + str(cog) + "]"
+        
         if serverObj:
             d = "[" + str(serverObj.name) + ":" + str(server) +"] "
             logStr += d
@@ -113,7 +134,7 @@ class Controller(commands.Cog):
         #check if config file exists
         if not os.path.exists(self.SETTINGS_FILE):
              
-            self._print("main","Creating settings file, using default values")
+            self._print("init","Creating settings file, using default values", cog=self.COG_NAME)
                     
             data = {
                 "DEFAULTS": {
@@ -137,14 +158,14 @@ class Controller(commands.Cog):
                 json.dump(data, configfile, indent=4)
             
             self.SETTINGS = data
-            self._print("main","Settings created successfully")
+            self._print("init","Settings created successfully", cog=self.COG_NAME)
         else:
-            self._print("main","Load settings from settings.json")
+            self._print("init","Load settings from settings.json", cog=self.COG_NAME)
             with open(self.SETTINGS_FILE, "r") as read_file:
                 data = json.load(read_file)
                               
                 self.SETTINGS = data
-            self._print("main","Settings loaded")
+            self._print("init","Settings loaded", cog=self.COG_NAME)
             
     def update_settings(self, _server, key, value, customCmd=False, customDmCmd=False):
         '''Updates settings file with new Values, loads new settings into the global settings dict.
@@ -193,7 +214,7 @@ class Controller(commands.Cog):
             read_file.truncate()
             
             self.SETTINGS = data
-            self._print(_server, "Settings updated: " + str(key) + " = " + str(value))
+            self._print(_server, "Settings updated: " + str(key) + " = " + str(value), cog=self.COG_NAME)
                        
     def get_setting(self, server, key):
         ''' Gets setting value from global settings dict.
@@ -276,9 +297,9 @@ class Controller(commands.Cog):
             msg = await channel.send("{} du hast keine Rechte für diesen Befehl.".format(user.mention))
             await asyncio.sleep(3)
             await msg.delete()
-            self._print(channel.guild.id, str(user.name) + ":" + str(user.id) + " didnt have permissions.")
+            self._print(channel.guild.id, str(user.name) + ":" + str(user.id) + " didnt have permissions.", cog=self.COG_NAME)
             return False
-            
+    
     def is_me(self, m):
         '''Checks if bot is the author of a message.
         
@@ -288,7 +309,9 @@ class Controller(commands.Cog):
         # block folding shit
         if True:
             pass
-
+        
+    
+    
     #===============================================================================
     # looped routines    
     #===============================================================================
@@ -308,13 +331,13 @@ class Controller(commands.Cog):
                     difference = datetime.datetime.utcnow() - self.SERVER_VARS[server].msg1vs1.created_at
                     self._print(server, difference)
                     if difference.total_seconds() > 60:
-                        self._print(server, "1v1 reaction change timed out")
+                        self._print(server, "1v1 reaction change timed out", cog=self.COG_NAME)
                         await self.SERVER_VARS[server].msg1vs1.delete()
                         self.SERVER_VARS[server].msg1vs1 = False
                 if self.SERVER_VARS[server].msg2vs2:
                     difference = datetime.datetime.utcnow() - self.SERVER_VARS[server].msg2vs2.created_at
                     if difference.total_seconds() > 60:
-                        self._print(server, "2v2 reaction change timed out")
+                        self._print(server, "2v2 reaction change timed out", cog=self.COG_NAME)
                         await self.SERVER_VARS[server].msg2vs2.delete()
                         self.SERVER_VARS[server].msg2vs2 = False
                 
@@ -328,7 +351,7 @@ class Controller(commands.Cog):
         
         def callback_commandTimeout(serverID, task):
             self.SERVER_VARS[serverID].commandTimeout = False
-            self._print(server.id, "commandTimeout coro stopped \n!\n!\n!")
+            self._print(server.id, "commandTimeout coro stopped \n!\n!\n!", cog=self.COG_NAME)
         
         # add looped tasks to bot.
            
@@ -336,7 +359,7 @@ class Controller(commands.Cog):
             future3 = self.bot.loop.create_task(self.commandTimeout(server.id))
             future3.add_done_callback(partial(callback_commandTimeout, server.id))
             self.SERVER_VARS[server.id].commandTimeout = True
-            self._print(server.id, "commandTimeout coro created")
+            self._print(server.id, "commandTimeout coro created", cog=self.COG_NAME)
         
         if True:
             pass
@@ -350,48 +373,48 @@ class Controller(commands.Cog):
         '''Executed at the startup of the bot.
         Creates initial state, adds old roles to the tracker dicts and posts main message.
         '''
-        
+                
         if not self.initialized:
-            self._print("controller", '------')
-            self._print("controller", 'Logged in as')
-            self._print("controller", self.bot.user.name)
-            self._print("controller", self.bot.user.id)
-            self._print("controller", 'Version: ' + str(self.VERSION))
-            self._print("controller", '------')
+            self._print("init", '------', cog=self.COG_NAME)
+            self._print("init", 'Logged in as', cog=self.COG_NAME)
+            self._print("init", self.bot.user.name, cog=self.COG_NAME)
+            self._print("init", self.bot.user.id, cog=self.COG_NAME)
+            self._print("init", 'Version: ' + str(self.VERSION), cog=self.COG_NAME)
+            self._print("init", '------', cog=self.COG_NAME)
             
             self.init_settings()
             
-            self._print("controller",'------')
+            self._print("init",'------', cog=self.COG_NAME)
             
-            self._print("controller",'initialize server variables')
+            self._print("init",'initialize server variables', cog=self.COG_NAME)
             
             for server in self.bot.guilds:
-                self.SERVER_VARS[server.id] = serverNode(server.id)
+                self.SERVER_VARS[server.id] = self.ServerNode(server.id)
             
-            self._print("controller",'------')
+            self._print("init",'------', cog=self.COG_NAME)
             
-            self._print("controller","load looped tasks")
+            self._print("init","load looped tasks", cog=self.COG_NAME)
             for server in self.bot.guilds:
                 self.loadLoopRoutines(server)  
               
-            self._print("controller",'------')  
+            self._print("init",'------', cog=self.COG_NAME)  
             
             await self.bot.change_presence(activity=discord.Game(name='!help'))
             
             self.initialized = True
             
-            self._print("controller",'Initialize Cogs') 
+            self._print("init",'Initialize Cogs', cog=self.COG_NAME) 
             
             for cogName in self.SERVER_COGS:
                 cog = self.bot.get_cog(cogName)
                 await cog.initialize()
                 
-            self._print("controller",'------')
+            self._print("init",'------', cog=self.COG_NAME)
             
         
         else:
-            
-            self._print("controller","load looped tasks")
+            self.initialized = False
+            self._print("init","load looped tasks", cog=self.COG_NAME)
             for server in self.bot.guilds:
                 self.loadLoopRoutines(server)
             
@@ -400,15 +423,85 @@ class Controller(commands.Cog):
                 await cog.init_on_error()
                     
             self.initialized = True
-        self._print("controller",'Initialization complete')
-        self._print("controller",'------')
+        self._print("init",'Initialization complete', cog=self.COG_NAME)
+        self._print("init",'------', cog=self.COG_NAME)
+        
+        
+    @commands.Cog.listener()
+    async def on_guild_join(self, server):
+        '''Adds newly added servers to the SERVER_VARS dict and starts their looped tasks.'''
+        
+        self._print(server.id,  "NEW SERVER ARRIVED", cog=self.COG_NAME)
+        
+        #add server do global var dict
+        self.SERVER_VARS[server.id] = self.ServerNode(server.id)
+        
+        # ad routines for new server
+        self.loadLoopRoutines(server)
+        
+        self._print(server.id,  "NEW SERVER INITIALIZED", cog=self.COG_NAME)
     
     @commands.Cog.listener()
-    async def on_member_join(self, member):
-        channel = member.guild.system_channel
-        if channel is not None:
-            await channel.send('Welcome {0.mention}.'.format(member))
+    async def on_guild_remove(self, server):
+        '''Removes leaving servers from the SERVER_VARS dict and settings file.'''
+        
+        self._print(server.id,  "SERVER REMOVED", cog=self.COG_NAME)
+        # remove server from global var dict
+        
+        self.SERVER_VARS.pop(server.id, None)
+        
+        # remove server from save file
+        with open(self.SETTINGS_FILE, "r+") as read_file:
+            data = json.load(read_file)
+            
+            if server.id in list(data):
+                del data[server.id]
+                
+            read_file.seek(0)
+            json.dump(data, read_file, indent=4)
+            read_file.truncate()
+            
+            self.SETTINGS = data
+            
+        self._print(server.id,  "SAVEDATA CLEARED", cog=self.COG_NAME)
 
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        '''Gets called when messages are posted.
+        
+        Handles custom commands.
+        '''
+        
+        if self.initialized and not message.guild == None:
+            server = message.guild.id
+            
+            # ignore own messages
+            if message.author == self.bot.user or message.author.bot:
+                return
+            
+            # check if user is already in a command process
+            if message.author in self.SERVER_VARS[server].cmdLockout:
+                #await bot.delete_message(message)
+                #await notify(message.channel, "{} bitte warte, bis der letzte Befehl zu Ende ausgeführt wurde.".format(message.author.mention), 7)
+                return
+            
+            # ignore actual commands
+            if self.is_command(message.content, server):
+                return
+            # custom command handling
+            elif self.is_custom_command(message.content, server):
+                cmdDict = self.get_setting(server, 'COMMANDS')
+                await message.channel.send(cmdDict[message.content[1:]])
+                return
+            # custom dmcommand handling
+            elif self.is_custom_dmcommand(message.content, server):
+                cmdDict = self.get_setting(server, 'DM_COMMANDS')
+                await message.author.send(cmdDict[message.content[1:]])
+                # await message.delete()
+                return
+    
+    
+            
     @commands.command()
     async def testdebug(self, ctx):
         """Says hello"""
