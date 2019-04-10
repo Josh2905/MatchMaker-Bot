@@ -404,10 +404,11 @@ class MatchMaking(commands.Cog):
         self.controller._print("init",'------', cog=self.COG_NAME) 
  
     async def init_on_error(self):
+        self.initialized = False
         self.controller._print("init",'initializing MatchMaking after error', cog=self.COG_NAME)
         
         self.controller._print("init",'------', cog=self.COG_NAME)
-        self.initialized = False
+        
         self._print("init","load looped tasks", cog=self.COG_NAME)
         for server in self.bot.guilds:
             self.loadLoopRoutines(server)

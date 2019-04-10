@@ -20,11 +20,31 @@ class SL_Bot(commands.Bot):
     handler = logging.handlers.TimedRotatingFileHandler("SLBot.log",'midnight', 1, 5, 'utf-8')
     handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
     logger.addHandler(handler)
+    COMMANDS = ["1vs1","2vs2","mainChannel","set","get","reset", "settings", "post", "commands", "help", "version", "restart", "roll", "reloadSettings", "debug"]
+    
+    def is_command(self, cmd):
+        '''Return, if a command with this name exists.
+        
+        :param cmd: Command name
+        :param server: Server ID
+        '''
+        if len(cmd.content) > 1 and cmd.content[0] == str(get_prefix(bot, cmd)):
+                
+            command = cmd.content[1:]
+            
+            mainCommand = command.split(" ", 1)[0]
+            
+            if mainCommand in self.COMMANDS:
+                return True
+        return False
+    
+    async def on_message(self, message):
+        if self.is_command(message):
+            await self.process_commands(message)
     
 SETTINGS_FILE = 'settings.json'
 TOKEN_FILE = 'token.txt'
-EXTENSIONS = ["Cogs.Controller", "Cogs.MatchMaking", "Cogs.Misc"]
-COMMANDS = ["1vs1","2vs2","mainChannel","set","get","reset", "settings", "post", "commands", "help", "version", "restart", "roll", "reloadSettings", "debug"]
+EXTENSIONS = ["Cogs.Controller", "Cogs.MatchMaking", "Cogs.Misc", "Cogs.CoinTournament"]
 
 def get_prefix(bot, message):
     '''This method enables the use of custom Prefixes set by the user.'''
@@ -41,29 +61,10 @@ def get_prefix(bot, message):
         prefix = "!"
     return prefix
 
-def is_command(cmd):
-    '''Return, if a command with this name exists.
-    
-    :param cmd: Command name
-    :param server: Server ID
-    '''
-    if len(cmd.content) > 1 and cmd.content[0] == str(get_prefix(bot, cmd)):
-            
-        command = cmd.content[1:]
-        
-        mainCommand = command.split(" ", 1)[0]
-        
-        if mainCommand in COMMANDS:
-            return True
-    return False
+
 
 bot = SL_Bot(command_prefix=get_prefix)
 bot.remove_command('help')
-
-@bot.event
-async def on_message(message):
-    if is_command(message):
-        await bot.process_commands(message)
 
 if __name__ == '__main__':      
     try:

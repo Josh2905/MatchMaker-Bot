@@ -49,7 +49,8 @@ class Misc(commands.Cog):
         self.controller._print("init",'------', cog=self.COG_NAME)
          
     async def init_on_error(self):
-        self.controller._print("init",'initializing MatchMaking', cog=self.COG_NAME)
+        self.initialized = False
+        self.controller._print("init",'initializing Misc after error.', cog=self.COG_NAME)
         self.controller._print("init",'------', cog=self.COG_NAME)
         
         self.initialized = True

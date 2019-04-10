@@ -82,13 +82,14 @@ class Controller(commands.Cog):
     
     SERVER_VARS = {}
     SETTINGS = {}
-    SERVER_COMMANDS = ["1vs1","2vs2","mainChannel","set","get","reset", "settings", "post", "commands", "help", "version", "restart", "roll", "reloadSettings", "debug"]
-    SERVER_COGS = ["MatchMaking", "Misc"]
+    
+    SERVER_COGS = ["MatchMaking", "Misc", "CoinTournament"]
     COG_NAME = "Controller"
     initialized = False 
     
     def __init__(self, bot):
         self.bot = bot
+        self.SERVER_COMMANDS = self.bot.COMMANDS
     
     def _print(self, server, message, log=True, cog=False):
         '''A custom print command, that adds additional formatting to the output and also logs it with a logger.
