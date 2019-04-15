@@ -500,19 +500,18 @@ class MatchMaking(commands.Cog):
                 #debug
                 self.controller._print(server, "message counter: (" + str(self.SERVER_VARS[server].msgCounter) + "/" + str(self.controller.get_setting(server, 'MESSAGE_INTERVAL')) + ")", log=False, cog=self.COG_NAME)
                 
-                if self.SERVER_VARS[server].msgCounter >= self.controller.get_setting(server, 'MESSAGE_INTERVAL'):
+                if self.SERVER_VARS[server].msgCounter == self.controller.get_setting(server, 'MESSAGE_INTERVAL'):
                     self.controller._print(server, "message counter maximum reached", cog=self.COG_NAME)
                     
                     lastMsg = None
                     try:
                         # this part sometimes raises Internal server errors on discords side.
-                        async for msg in message.channel.history(limit=1):
-                            lastMsg = msg
+                        lastMsg = await message.channel.fetch_message(self.SERVER_VARS[server].lastMsgStack[-1])
                     except Exception as e:
                         print(traceback.print_exc())
                         self.bot.logger.exception("Uncaught exception: {0}".format(str(e)))
                                     
-                    if (lastMsg is not None) and not self.controller.is_me(lastMsg):
+                    if (lastMsg is not None) and (not self.controller.is_me(lastMsg)):
                         
                         await self.postMessage(message.channel)
                         
@@ -520,6 +519,8 @@ class MatchMaking(commands.Cog):
                         self.SERVER_VARS[server].msgCounter = 0
                     else: 
                         self.controller._print(server, "Last message was from bot, waiting for one more.", cog=self.COG_NAME)
+                elif self.SERVER_VARS[server].msgCounter > self.controller.get_setting(server, 'MESSAGE_INTERVAL'):
+                    pass
     
     @commands.Cog.listener()
     async def on_message_delete(self, message):
