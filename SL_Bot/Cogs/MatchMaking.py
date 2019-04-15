@@ -151,14 +151,24 @@ class MatchMaking(commands.Cog):
             
             #remove old message
             if self.SERVER_VARS[server].activeMessage:
-                await self.SERVER_VARS[server].activeMessage.delete()
+                try: 
+                    await self.SERVER_VARS[server].activeMessage.delete()
+                except:
+                    pass
                   
             # send message
             self.SERVER_VARS[server].msgTimer = datetime.datetime.utcnow()
             self.SERVER_VARS[server].msgCounter = 0
             
-            msg = await channel.send(self.controller.get_setting(server, 'MESSAGE_CONTENT'))
-            self.SERVER_VARS[server].activeMessage = msg
+            msg = None
+            count = 0
+            while msg is None and count < 5:
+                try:
+                    msg = await channel.send(self.controller.get_setting(server, 'MESSAGE_CONTENT'))
+                    self.SERVER_VARS[server].activeMessage = msg
+                except:
+                    self.controller._print(server, "retrying posting", cog=self.COG_NAME)
+                count += 1;
             
             #add reactions
             r1v1 = get(self.bot.emojis, name = self.controller.get_setting(server, 'REACTION_1VS1'))
