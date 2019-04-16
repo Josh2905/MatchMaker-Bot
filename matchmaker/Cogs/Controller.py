@@ -1138,33 +1138,33 @@ class Controller(commands.Cog):
             CHECK_INTERVAL_ROLES = self.get_setting(server, 'CHECK_INTERVAL_ROLES')
             CHECK_INTERVAL_REPOST = self.get_setting(server, 'CHECK_INTERVAL_REPOST')
                 
-            embed = discord.Embed(title="AKTUELLE EINSTELLUNGEN[" + message.guild.name + "]:", description="Folgene einstellungen wurden vorgenommen:  ", color=0x00ff00)
+            embed = discord.Embed(title="CURRENT SETTINGS[*" + message.guild.name + "*]:", description="The following settings are in use:  ", color=0x00ff00)
             
-            embed.add_field(name="MAINCHANNEL:    \n" + str(MAINCHANNEL), value="ID des Kanals, in dem der Bot genutzt wird.", inline=False)
+            embed.add_field(name="MAINCHANNEL:", value= "**" + str(MAINCHANNEL) + "**\nID of the matchmaking channel the bot will be active in.", inline=False)
             
-            embed.add_field(name="PREFIX:    \n" + str(PREFIX), value="Prefix vor Befehlen.", inline=False)
+            embed.add_field(name="PREFIX:", value= "**" + str(PREFIX) + "**\nCommand prefix.", inline=False)
             
-            embed.add_field(name="MESSAGE_INTERVAL:    \n" + str(MESSAGE_INTERVAL), value="Anzahl der Nachrichten, nach der der Bot automatisch erneut postet.", inline=False)
+            embed.add_field(name="MESSAGE_INTERVAL:", value= "**" + str(MESSAGE_INTERVAL) + "**\nAmount of messages that need to be posted before reposting the main message.", inline=False)
             
-            embed.add_field(name="MESSAGE_CONTENT: \n" + str(MESSAGE_CONTENT), value="Inhalt der Hauptnachricht.", inline=False)
+            embed.add_field(name="MESSAGE_CONTENT:", value= "**" + str(MESSAGE_CONTENT) + "**\nContent of main message.", inline=False)
             
-            embed.add_field(name="MESSAGE_REPOST_TIME:    \n" + str(MESSAGE_REPOST_TIME) + " (" + str(datetime.timedelta(seconds=MESSAGE_REPOST_TIME)) + ")", value="Zeit, nach der der Bot automatisch erneut postet. (In Sekunden)", inline=False)
+            embed.add_field(name="MESSAGE_REPOST_TIME:", value= "**" + str(MESSAGE_REPOST_TIME) + " (" + str(datetime.timedelta(seconds=MESSAGE_REPOST_TIME)) + ")" + "**\nAutomatic main message repost time interval. (in seconds)", inline=False)
             
             embed2 = discord.Embed(color=0x00ff00)
             
-            embed2.add_field(name="REACTION_1VS1:    \n" + str(REACTION_1VS1), value="Reaktionsemoji zum suchen eines 1vs1.", inline=False)
+            embed2.add_field(name="REACTION_1VS1:", value= "**" + str(REACTION_1VS1) + "**\nReaction for 1vs1 searches.", inline=False)
             
-            embed2.add_field(name="REACTION_2VS2:    \n" + str(REACTION_2VS2), value="Reaktionsemoji zum suchen eines 2vs2.", inline=False)
+            embed2.add_field(name="REACTION_2VS2:", value= "**" + str(REACTION_2VS2) + "**\nReaction for 2vs2 searches.", inline=False)
             
-            embed2.add_field(name="ROLE_1VS1:    \n" + str(ROLE_1VS1), value="Name der Rolle für 1vs1 Suchende.", inline=False)
+            embed2.add_field(name="ROLE_1VS1:", value= "**" + str(ROLE_1VS1) + "**\nName of the role for 1vs1 searches.", inline=False)
             
-            embed2.add_field(name="ROLE_2VS2:    \n" + str(ROLE_2VS2), value="Name der Rolle für 2vs2 Suchende.", inline=False)
+            embed2.add_field(name="ROLE_2VS2:", value= "**" + str(ROLE_2VS2) + "**\nName of the role for 2vs2 searches.", inline=False)
             
-            embed2.add_field(name="ROLE_TIMEOUT:    \n" + str(ROLE_TIMEOUT) + " (" + str(datetime.timedelta(seconds=ROLE_TIMEOUT)) + ")", value="Zeit, nach der die Rollen automatisch entfernt werden. (In Sekunden)", inline=False)
+            embed2.add_field(name="ROLE_TIMEOUT:", value= "**" + str(ROLE_TIMEOUT) + " (" + str(datetime.timedelta(seconds=ROLE_TIMEOUT)) + ")" + "**\nThe time, that has to pass, before the matchmaking roles are removed again. (in seconds)", inline=False)
             
-            embed2.add_field(name="CHECK_INTERVAL_ROLES:    \n" + str(CHECK_INTERVAL_ROLES) + " (" + str(datetime.timedelta(seconds=CHECK_INTERVAL_ROLES)) + ")", value="Zeitabstand, nach dem der Bot regelmäßig die Rollen auf Timeouts überprüft. (In Sekunden)", inline=False)
+            embed2.add_field(name="CHECK_INTERVAL_ROLES:", value= "**" + str(CHECK_INTERVAL_ROLES) + " (" + str(datetime.timedelta(seconds=CHECK_INTERVAL_ROLES)) + ")" + "**\nTime interval after which the bot checks for role timeouts.  (in seconds)", inline=False)
             
-            embed2.add_field(name="CHECK_INTERVAL_REPOST:    \n" + str(CHECK_INTERVAL_REPOST) + " (" + str(datetime.timedelta(seconds=CHECK_INTERVAL_REPOST)) + ")", value="Zeitabstand, nach dem der Bot regelmäßig prüft, ob genügend Zeit vergangen ist, um eine neue Nachricht zu posten. (In Sekunden)", inline=False)
+            embed2.add_field(name="CHECK_INTERVAL_REPOST:", value= "**" + str(CHECK_INTERVAL_REPOST) + " (" + str(datetime.timedelta(seconds=CHECK_INTERVAL_REPOST)) + ")" + "**\nTime interval after which the bot periodically checks to see if enough time has passed to post a new message. (in seconds)", inline=False)
             
             await user.send(embed=embed)
             await user.send(embed=embed2)
