@@ -55,7 +55,7 @@ class Controller(commands.Cog):
     # if messages are sent too quickly, the actual number might be off by 1 or 2.
     MESSAGE_INTERVAL = 10
                                     
-    MESSAGE_CONTENT = "Click on the reaction :ok_hand: for 1vs1, :joy: for 2vs2 or use the command !1vs1 / !2vs2. \nYou will be granted the corresponding role for one hour and you will be notified by other searches during that time.\nTo remove the role prematurely, just react/use the command again."
+    MESSAGE_CONTENT = "Click on the :ok_hand: reaction for 1vs1, :joy: for 2vs2 or use the command !1vs1 / !2vs2. \nYou will be granted the corresponding role for one hour and you will be notified by other searches during that time.\nTo remove the role prematurely, just react/use the command again."
     #in seconds
     MESSAGE_REPOST_TIME = 60*5
     
