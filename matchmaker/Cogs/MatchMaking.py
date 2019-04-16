@@ -770,9 +770,9 @@ class MatchMaking(commands.Cog):
                         await oldChannel.purge(limit=100, check=self.controller.is_me)
                     
                 else:
-                    await self.controller.notify(message.channel, "{} dies ist bereits der Main Channel.".format(user.mention))
+                    await self.controller.notify(message.channel, "{} this already is the main channel.".format(user.mention))
             else:
-                await self.controller.notify(message.channel, "{} bitte setze erst die Rollen für 1vs1 und 2vs2. '!help' für mehr.".format(user.mention), 7)
+                await self.controller.notify(message.channel, "{} Set up the 1vs1/2vs2 roles first.".format(user.mention), 7)
         await message.delete()
         
         if user in self.controller.SERVER_VARS[server].cmdLockout:
@@ -798,9 +798,9 @@ class MatchMaking(commands.Cog):
                 if channel.id == message.channel.id:
                     await self.postMessage(channel)
                 else:
-                    await self.controller.notify(message.channel, "{} nur im Hauptkanal möglich.".format(user.mention))
+                    await self.controller.notify(message.channel, "{} not possible in this channel.".format(user.mention))
             else:
-                await self.controller.notify(message.channel, "{} bitte setze erst die Rollen für 1vs1, 2vs2 und den Hauptkanal. '!help' für mehr.".format(user.mention), 7)
+                await self.controller.notify(message.channel, "{} Set up the 1vs1/2vs2 roles and a main channel first.".format(user.mention), 7)
         await message.delete()    
     
 def setup(bot):

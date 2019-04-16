@@ -79,7 +79,13 @@ class Misc(commands.Cog):
         self.controller._print(server, str(user.name) + ":" + str(user.id) + " used command: roll ", cog=self.COG_NAME)
         
         randInt = randint(0, 9)
-        await message.channel.send("{} hat eine **".format(user.mention) + str(randInt) + "** gewürfelt.")
+        
+        if self.controller.get_setting(server, 'GERMAN'):
+            alert = "{} hat eine **".format(user.mention) + str(randInt) + "** gewürfelt."
+        else:
+            alert = "{} rolled a **".format(user.mention) + str(randInt) + "**."
+                    
+        await message.channel.send(alert)
         # await message.delete()
         
 def setup(bot):
