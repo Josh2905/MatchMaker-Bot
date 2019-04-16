@@ -13,7 +13,7 @@ from discord.ext import commands
 import logging
 from logging.handlers import TimedRotatingFileHandler
 
-class SL_Bot(commands.Bot):
+class MatchMaker(commands.Bot):
 
     logger = logging.getLogger('discord')
     logger.setLevel(logging.INFO)
@@ -65,7 +65,7 @@ def get_prefix(bot, message):
         prefix = "!"
     return prefix
 
-bot = SL_Bot(command_prefix=get_prefix)
+bot = MatchMaker(command_prefix=get_prefix)
 bot.remove_command('help')
 
 if __name__ == '__main__':      
