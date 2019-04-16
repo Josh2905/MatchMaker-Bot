@@ -35,6 +35,7 @@ class MatchMaking(commands.Cog):
             self.checkTimeout = False
             self.repostMessage = False
             
+    # non persistent server variables
     SERVER_VARS = {}
     COG_NAME = "MatchMaking"
     initialized = False

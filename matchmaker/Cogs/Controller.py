@@ -3,21 +3,19 @@ Created on 09.04.2019
 
 @author: Joshua Esselmann
 '''
+
 import asyncio
 import datetime
-
 import json
 import os
 from functools import partial
 import traceback
-
-
 import discord
 from discord.ext import commands
 from discord.utils import get
 
 class Controller(commands.Cog):
-    '''This Cog implements a general interface with common methods.
+    '''This Cog implements a general interface with common methods used in all Cogs.
     Also acts as an accessor to the settigns file.
     '''
     
@@ -41,13 +39,14 @@ class Controller(commands.Cog):
     ####################################################################################################
     ##DEFAULTS##
     ####################################################################################################
-    VERSION = "1.2.0"
+    VERSION = "1.2.1"
     
     AUTHOR_ID = 90043934247501824
     SETTINGS_FILE = 'settings.json'
     TOKEN_FILE = 'token.txt'
     
-    MAINCHANNEL = ''                  # right click on channel and select "copy ID"
+    GERMAN = False
+    MAINCHANNEL = ''                  
     PREFIX = "!"
     
     ##Repeated message##
@@ -79,12 +78,14 @@ class Controller(commands.Cog):
     ##END OF DEFAULTS##
     ####################################################################################################
     
-    
+    # non persistent server variables
     SERVER_VARS = {}
+    # representation of settings from file
     SETTINGS = {}
     
     SERVER_COGS = ["MatchMaking", "Misc", "CoinTournament"]
     COG_NAME = "Controller"
+    # is true after first on_ready call.
     initialized = False 
     
     def __init__(self, bot):
@@ -97,6 +98,7 @@ class Controller(commands.Cog):
         :param server: Server ID performing the action to be logged.
         :param message: String that will be logged.
         :param log: Decides, if message will be logged in a file or just the console.
+        :param cog: Adds Cog name to output string.
         '''
         logStr = "<" + str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")) + ">"
         serverObj = self.bot.get_guild(server)
@@ -124,41 +126,53 @@ class Controller(commands.Cog):
         file with default values if it doesnt already exist.
         '''
         
+        defaults = {
+            "DEFAULTS": {
+                'PREFIX': self.PREFIX,
+                'MAINCHANNEL': self.MAINCHANNEL,
+                'MESSAGE_CONTENT': self.MESSAGE_CONTENT,
+                'MESSAGE_INTERVAL' : self.MESSAGE_INTERVAL,
+                'MESSAGE_REPOST_TIME': self.MESSAGE_REPOST_TIME,
+                'REACTION_1VS1': self.REACTION_1VS1,
+                'REACTION_2VS2': self.REACTION_2VS2,
+                'ROLE_1VS1': self.ROLE_1VS1,
+                'ROLE_2VS2': self.ROLE_2VS2,
+                'ROLE_TIMEOUT': self.ROLE_TIMEOUT,
+                'CHECK_INTERVAL_ROLES': self.CHECK_INTERVAL_ROLES,
+                'CHECK_INTERVAL_REPOST': self.CHECK_INTERVAL_REPOST,
+                'COMMANDS': self.COMMANDS,
+                'DM_COMMANDS': self.DM_COMMANDS,
+                'GERMAN': self.GERMAN,
+            }
+        }
         
         #check if config file exists
         if not os.path.exists(self.SETTINGS_FILE):
              
             self._print("init","Creating settings file, using default values", cog=self.COG_NAME)
-                    
-            data = {
-                "DEFAULTS": {
-                    'PREFIX': self.PREFIX,
-                    'MAINCHANNEL': self.MAINCHANNEL,
-                    'MESSAGE_CONTENT': self.MESSAGE_CONTENT,
-                    'MESSAGE_INTERVAL' : self.MESSAGE_INTERVAL,
-                    'MESSAGE_REPOST_TIME': self.MESSAGE_REPOST_TIME,
-                    'REACTION_1VS1': self.REACTION_1VS1,
-                    'REACTION_2VS2': self.REACTION_2VS2,
-                    'ROLE_1VS1': self.ROLE_1VS1,
-                    'ROLE_2VS2': self.ROLE_2VS2,
-                    'ROLE_TIMEOUT': self.ROLE_TIMEOUT,
-                    'CHECK_INTERVAL_ROLES': self.CHECK_INTERVAL_ROLES,
-                    'CHECK_INTERVAL_REPOST': self.CHECK_INTERVAL_REPOST,
-                    'COMMANDS': self.COMMANDS,
-                    'DM_COMMANDS': self.DM_COMMANDS,
-                }
-            }
-            with open(self.SETTINGS_FILE, 'w') as configfile:
-                json.dump(data, configfile, indent=4)
             
-            self.SETTINGS = data
+            with open(self.SETTINGS_FILE, 'w') as configfile:
+                json.dump(defaults, configfile, indent=4)
+            
+            self.SETTINGS = defaults
             self._print("init","Settings created successfully", cog=self.COG_NAME)
         else:
             self._print("init","Load settings from settings.json", cog=self.COG_NAME)
+            
+            # update defaults.
+            with open(self.SETTINGS_FILE, 'r+') as configfile:
+                data = json.load(configfile)
+                data["DEFAULTS"] = defaults["DEFAULTS"]
+                configfile.seek(0)
+                json.dump(data, configfile, indent=4)
+                configfile.truncate()
+            
+            # load settings
             with open(self.SETTINGS_FILE, "r") as read_file:
                 data = json.load(read_file)
                               
                 self.SETTINGS = data
+            
             self._print("init","Settings loaded", cog=self.COG_NAME)
             
     def update_settings(self, _server, key, value, customCmd=False, customDmCmd=False):
