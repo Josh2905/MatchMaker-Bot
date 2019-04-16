@@ -13,7 +13,7 @@ from collections import deque
 
 
 class MatchMaking(commands.Cog):
-    '''Implements MAtchmaking functionality.
+    '''Implements Matchmaking functionality.
     '''
     class ServerNode():
         '''This class is used to store variables for each connected Server.'''
@@ -69,13 +69,23 @@ class MatchMaking(commands.Cog):
         role2vs2 = get(channel.guild.roles, name=str(self.controller.get_setting(server, 'ROLE_2VS2')))
             
         if role == role1vs1:
-            alert = "sucht nach einem 1vs1 Match! {}".format(role.mention)
+            
+            if self.controller.get_setting(server, 'GERMAN'):
+                alert = "sucht nach einem 1vs1 Match! {}".format(role.mention)
+            else:
+                alert = "is looking for a 1vs1 match! {}".format(role.mention)
+            
             msg = await channel.send(user.mention + " " + alert)
             # await msg.add_reaction(REACTION_CANCEL)
             self.SERVER_VARS[server].searchMessageSinglesDict[user.id] = (channel.id, msg.id)
         
         elif role == role2vs2:
-            alert = "sucht nach einem 2vs2 Match! {}".format(role.mention)
+            
+            if self.controller.get_setting(server, 'GERMAN'):
+                alert = "sucht nach einem 2vs2 Match! {}".format(role.mention)
+            else:
+                alert = "is looking for a 2vs2 match! {}".format(role.mention)
+            
             msg = await channel.send(user.mention + " " + alert)
             # await msg.add_reaction(REACTION_CANCEL)
             self.SERVER_VARS[server].searchMessageDoublesDict[user.id] = (channel.id, msg.id)
@@ -99,7 +109,13 @@ class MatchMaking(commands.Cog):
                     await user.remove_roles(role)
                 except AttributeError:
                     pass
-                await self.controller.notify(message.channel, "{} du hast nicht mehr die Rolle ".format(user.mention) + str(self.controller.get_setting(server, 'ROLE_1VS1')) + ".", timeout=5)
+                
+                if self.controller.get_setting(server, 'GERMAN'):
+                    alert = "{} du hast nicht mehr die Rolle ".format(user.mention)
+                else:
+                    alert = "{} You no longer have the role ".format(user.mention)
+                
+                await self.controller.notify(message.channel, alert + str(self.controller.get_setting(server, 'ROLE_1VS1')) + ".", timeout=5)
                 self.controller._print(server, "removed 1vs1 role from " + str(user.name), cog=self.COG_NAME)
             else:
                 # grant user role
@@ -108,7 +124,7 @@ class MatchMaking(commands.Cog):
                 # await notify(message.channel, "{0} du hast nun die Rolle ".format(user.mention) + str(get_setting(server, 'ROLE_1VS1')) + ".")
                 self.controller._print(server, "applied 1vs1 role to " + str(user.name), cog=self.COG_NAME)
         else:
-            await self.controller.notify(message.channel, "{0} diese Rolle existiert nicht mehr. Bitte erneut setzen. (!help)".format(user.mention))
+            await self.controller.notify(message.channel, "{0} This role does not exist anymore. Please set it again.".format(user.mention))
         
     async def doubles(self, user, role, message):
         '''This method adds/removes a role from a discord servber member, informs him of that fact, removes the message together with its own 
@@ -129,7 +145,13 @@ class MatchMaking(commands.Cog):
                     await user.remove_roles(role)
                 except AttributeError:
                     pass
-                await self.controller.notify(message.channel, "{} du hast nicht mehr die Rolle ".format(user.mention) + str(self.controller.get_setting(server, 'ROLE_2VS2')) + ".", timeout=5)
+                
+                if self.controller.get_setting(server, 'GERMAN'):
+                    alert = "{} du hast nicht mehr die Rolle ".format(user.mention)
+                else:
+                    alert = "{} You no longer have the role ".format(user.mention)
+                
+                await self.controller.notify(message.channel, alert + str(self.controller.get_setting(server, 'ROLE_2VS2')) + ".", timeout=5)
                 self.controller._print(server, "removed 2vs2 role from " + str(user.name), cog=self.COG_NAME)
             else:
                 # grant user role
@@ -138,7 +160,7 @@ class MatchMaking(commands.Cog):
                 # await notify(message.channel, "{} du hast nun die Rolle ".format(user.mention) + str(get_setting(server, 'ROLE_2VS2')) + ".")
                 self.controller._print(server, "applied 2vs2 role to " + str(user.name), cog=self.COG_NAME)
         else:
-            await self.controller.notify(message.channel, "{0} diese Rolle existiert nicht mehr. Bitte erneut setzen. (!help)".format(user.mention))
+            await self.controller.notify(message.channel, "{0} This role does not exist anymore. Please set it again.".format(user.mention))
     
     async def postMessage(self, channel):
         '''Posts the main matchmaking message to the specified channel.
@@ -248,6 +270,7 @@ class MatchMaking(commands.Cog):
     async def repostMessage(self, server):
         '''Periodically checks for the repost timeout of the main message and reposts it if enough time has passed.
         
+        :param server: Server ID
         '''
         
         await self.bot.wait_until_ready()
@@ -678,9 +701,9 @@ class MatchMaking(commands.Cog):
             if message.channel.id == self.controller.get_setting(message.guild.id, 'MAINCHANNEL'):
                 await self.singles(user, role, message)
             else:
-                await self.controller.notify(message.channel, "{} in diesem Kanal nicht möglich.".format(user.mention))
+                await self.controller.notify(message.channel, "{} not possible in this channel.".format(user.mention))
         else:
-            await self.controller.notify(message.channel, "{} bitte setze erst die Rollen für 1vs1, 2vs2 und einen Hauptkanal. '!help' für mehr.".format(user.mention), 7)
+            await self.controller.notify(message.channel, "{} Set up the 1vs1/2vs2 roles and a main channel first.".format(user.mention), 7)
         
         await message.delete()
         
@@ -701,9 +724,9 @@ class MatchMaking(commands.Cog):
             if message.channel.id == self.controller.get_setting(message.guild.id, 'MAINCHANNEL'):
                 await self.doubles(user, role, message)
             else:
-                await self.controller.notify(message.channel, "{} in diesem Kanal nicht möglich.".format(user.mention))
+                await self.controller.notify(message.channel, "{} not possible in this channel.".format(user.mention))
         else:
-            await self.controller.notify(message.channel, "{} bitte setze erst die Rollen für 1vs1, 2vs2 und einen Hauptkanal. '!help' für mehr.".format(user.mention), 7)
+            await self.controller.notify(message.channel, "{} Set up the 1vs1/2vs2 roles and a main channel first.".format(user.mention), 7)
         
         await message.delete()
     

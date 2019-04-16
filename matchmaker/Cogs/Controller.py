@@ -53,10 +53,9 @@ class Controller(commands.Cog):
     ##Repeated message##
     
     # if messages are sent too quickly, the actual number might be off by 1 or 2.
-    MESSAGE_INTERVAL = 20
+    MESSAGE_INTERVAL = 10
                                     
-    MESSAGE_CONTENT = "Reagiert mit :ok_hand: für 1vs1, :joy: für 2vs2. \nReagiert erneut, um die Rollen wieder zu entfernen.\nAlternativ könnt ihr euch die Rollen auch mit $1vs1 bzw $2vs2 geben und nehmen. \nnach 30 Minuten werden die Rollen automatisch entfernt.\n"
-    
+    MESSAGE_CONTENT = "Click on the reaction :ok_hand:  for 1vs1, :joy: for 2vs2 or use the command !1vs1 / !2vs2. \nYou will be granted the corresponding role for one hour and you will be notified by other searches during that time.\nTo remove the role prematurely, just react/use the command again."
     #in seconds
     MESSAGE_REPOST_TIME = 60*5
     
@@ -69,7 +68,7 @@ class Controller(commands.Cog):
     ROLE_2VS2 = ""
     
     #in seconds
-    ROLE_TIMEOUT = 60*30
+    ROLE_TIMEOUT = 60*60
     
     CHECK_INTERVAL_ROLES = 60
     CHECK_INTERVAL_REPOST = 60

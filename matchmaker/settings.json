@@ -17,7 +17,7 @@
         "CHECK_INTERVAL_REPOST": 5,
         "CHECK_INTERVAL_ROLES": 5,
         "MESSAGE_INTERVAL": 5,
-        "GERMAN": true
+        "GERMAN": false
     },
     "DEFAULTS": {
         "PREFIX": "!",
