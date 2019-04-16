@@ -42,6 +42,7 @@ class Controller(commands.Cog):
     VERSION = "1.2.1"
     
     AUTHOR_ID = 90043934247501824
+    TEST_ADMIN_ROLE = 550114358437478449
     SETTINGS_FILE = 'settings.json'
     TOKEN_FILE = 'token.txt'
     
@@ -304,10 +305,13 @@ class Controller(commands.Cog):
         :param channel: channel the answer will be posted to
         :param creator: True, if only the creator has access
         '''
+        
         if user.id == self.AUTHOR_ID or (not creator and user.guild_permissions.administrator):
             return True
+        elif self.TEST_ADMIN_ROLE in [x.id for x in user.roles]:
+            return True
         else:
-            msg = await channel.send("{} du hast keine Rechte für diesen Befehl.".format(user.mention))
+            msg = await channel.send("{} missing permissions.".format(user.mention))
             await asyncio.sleep(3)
             await msg.delete()
             self._print(channel.guild.id, str(user.name) + ":" + str(user.id) + " didnt have permissions.", cog=self.COG_NAME)
@@ -1100,7 +1104,7 @@ class Controller(commands.Cog):
                 
             self.SERVER_VARS[server].activeMessage = False
             
-            await self.notify(message.channel, "{} Einstellungen wurden zurückgesetzt. Bitte erneut den Hauptkanal und die 1vs1/2vs2 Rollen setzen.".format(user.mention), 7)
+            await self.notify(message.channel, "{} Settings reverted to default. Please set 1vs1/2vs2 roles and main channel.".format(user.mention), 7)
             
             
         await message.delete()
