@@ -677,6 +677,29 @@ class Controller(commands.Cog):
                 
                 
                 
+                elif args[0] == 'language':
+                    #===============================================================
+                    # LANGUAGE handling
+                    #===============================================================
+                    
+                    if len(args) == 2:
+                        if args[1] == "en":
+                            
+                            self.update_settings(server, 'GERMAN', False)
+                            error = "{} Language updated.".format(user.mention)
+                        
+                        elif args[1] == "de":
+                            
+                            self.update_settings(server, 'GERMAN', True)
+                            error = "{} Language updated.".format(user.mention)
+                        else:
+                            error = "{} Wrong argument. Supported Language arguments: en(english), de(german)".format(user.mention)
+                    else:
+                        error = "{} Wrong number of arguments. Example: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set language en\""
+                
+                
+                
+                
                 elif args[0] == 'message' :
                     if len(args) == 1:
                         # no arguments given
@@ -1234,6 +1257,7 @@ class Controller(commands.Cog):
                 helpStr += prefix + "set role 2vs2 <value>             Sets the 2vs2 role. <value> as the role name.\n"
                 helpStr += prefix + "set role timeout <value>          Sets the timer, after which roles will be removed again.\n"
                 helpStr +=          "                                   <value> in seconds. \n"
+                helpStr += prefix + "set language <value>              Changes language of matchmaking messages. Supported: en, de.\n"
                 helpStr += prefix + "set command <value>               Adds, changes or removes the command <value>.\n"
                 helpStr +=          "                                   The reply to this command will be posted in the same channel.\n"
                 helpStr += prefix + "set dmcommand <value>             Adds, changes or removes the command <value>.\n"
