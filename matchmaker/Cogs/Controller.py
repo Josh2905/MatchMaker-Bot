@@ -70,8 +70,8 @@ class Controller(commands.Cog):
     #in seconds
     ROLE_TIMEOUT = 60*60
     
-    CHECK_INTERVAL_ROLES = 60
-    CHECK_INTERVAL_REPOST = 60
+    CHECK_INTERVAL_ROLES = 300
+    CHECK_INTERVAL_REPOST = 120
     COMMANDS = {}
     DM_COMMANDS = {}
     ####################################################################################################
