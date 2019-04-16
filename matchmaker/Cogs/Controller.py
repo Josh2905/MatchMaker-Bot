@@ -557,14 +557,14 @@ class Controller(commands.Cog):
                             self.update_settings(server, 'REACTION_1VS1', emoji)
                             
                             await self.SERVER_VARS[server].msg1vs1.delete()
-                            await self.notify(self.SERVER_VARS[server].msg1vs1.channel, "{} die 1vs1 Reaktion wurde aktualisiert. ".format(user.mention) + str(reaction.emoji))
+                            await self.notify(self.SERVER_VARS[server].msg1vs1.channel, "{} 1vs1 reaction updated. ".format(user.mention) + str(reaction.emoji))
                             channel = self.bot.get_channel(self.get_setting(server, 'MAINCHANNEL'))
                             
                             matchMaker = self.bot.get_cog("MatchMaking")
                             await matchMaker.postMessage(channel)
                             self.SERVER_VARS[server].msg1vs1 = False
                         else:
-                            await self.notify(reaction.message.channel, "{} ich habe leider keinen Zugriff auf dieses Emoji.".format(user.mention))
+                            await self.notify(reaction.message.channel, "{} Error: Cannot access Emoji.".format(user.mention))
                             await self.SERVER_VARS[server].msg1vs1.delete()
                             self.SERVER_VARS[server].msg1vs1 = False
                     else:
@@ -586,14 +586,14 @@ class Controller(commands.Cog):
                             self.update_settings(server, 'REACTION_2VS2', emoji)
                             
                             await self.SERVER_VARS[server].msg2vs2.delete()
-                            await self.notify(self.SERVER_VARS[server].msg2vs2.channel, "{} die 2vs2 Reaktion wurde aktualisiert. ".format(user.mention) + str(reaction.emoji))
+                            await self.notify(self.SERVER_VARS[server].msg2vs2.channel, "{} 2vs2 reaction updated. ".format(user.mention) + str(reaction.emoji))
                             channel = self.bot.get_channel(self.get_setting(server, 'MAINCHANNEL'))
                             
                             matchMaker = self.bot.get_cog("MatchMaking")
                             await matchMaker.postMessage(channel)
                             self.SERVER_VARS[server].msg2vs2 = False
                         else:
-                            await self.notify(reaction.message.channel, "{} ich habe leider keinen Zugriff auf dieses Emoji.".format(user.mention))
+                            await self.notify(reaction.message.channel, "{} Error: Cannot access Emoji.".format(user.mention))
                             await self.SERVER_VARS[server].msg2vs2.delete()
                             self.SERVER_VARS[server].msg2vs2 = False
                     else:
@@ -1027,7 +1027,7 @@ class Controller(commands.Cog):
                     error = "{} Wrong argument. Possible arguments: prefix, message, reaction, role, checkinterval, command, dmcommand".format(user.mention)
             else:
                 # TODO help here
-                error = "{} Missing argument. Possible arguments:: prefix, message, reaction, role, checkinterval, command, dmcommand".format(user.mention)
+                error = "{} Missing argument. Possible arguments: prefix, message, reaction, role, checkinterval, command, dmcommand".format(user.mention)
             
             # notify error, if one occured
             if not error == "":
@@ -1078,7 +1078,6 @@ class Controller(commands.Cog):
                     if 'COMMANDS' in list(data[str(server)]):
                         saveCMD = data[str(server)]['COMMANDS']
                     if 'DM_COMMANDS' in list(data[str(server)]):
-                        print("yes")
                         saveDmCMD = data[str(server)]['DM_COMMANDS']
                     
                     del data[str(server)]

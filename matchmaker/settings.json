@@ -39,11 +39,12 @@
         "COMMANDS": {
             "test": "YOO"
         },
+        "DM_COMMANDS": {
+            "asdf": "ASDF"
+        },
         "PREFIX": "?",
         "ROLE_1VS1": "1",
         "ROLE_2VS2": "2",
-        "MAINCHANNEL": 550766632939814912,
-        "REACTION_1VS1": "\u26d4",
-        "REACTION_2VS2": "\ud83d\udc40"
+        "MAINCHANNEL": 550766632939814912
     }
 }

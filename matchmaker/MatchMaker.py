@@ -22,7 +22,7 @@ class MatchMaker(commands.Bot):
     logger.addHandler(handler)
     
     COMMANDS = ["1vs1","2vs2","mainChannel",
-                "set","get","reset", "settings",
+                "set","reset", "settings",
                 "post", "commands", "help", "version",
                 "restart", "roll", "reloadSettings",
                 "debug", "testdebug"]
