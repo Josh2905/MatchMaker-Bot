@@ -16,3 +16,8 @@ SLBot.log
 SL_Bot_milestone/MatchMaker.py
 SL_Bot/SLBot.log.2019-04-10
 SL_Bot/SLBot.log.2019-04-14
+SL_Bot/SLBot.log.2019-04-15
+matchmaker/token.txt
+matchmaker/SLBot.log.2019-04-15
+*.2019-04-14
+matchmaker/SLBot.log.2019-04-10
