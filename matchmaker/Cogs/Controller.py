@@ -1366,24 +1366,24 @@ class Controller(commands.Cog):
                 
                 
                 helpStr  =          "```" 
-                helpStr +=          "[" + str(message.guild.name) + "] \n" 
-                helpStr +=          "Liste aller Custom-Befehle, die im selben Kanal antworten: \n"
+                helpStr +=          "[" + str(message.guild.name) + "] \n\n" 
+                helpStr +=          "Custom commands, that respond in the channel they were called in: \n"
                 helpStr +=          " \n"
                 
                 for command in list(cmdDict):
                     helpStr += "   " + prefix + str(command) + " \n"
                 
                 helpStr +=          " \n"
-                helpStr +=          "Custom-Befehle, die als Antwort Private Nachrichten senden: \n"
+                helpStr +=          "Custom commands, that respond as a direct message: \n"
                 helpStr +=          " \n"
                 
                 for command in list(dmCmdDict):
                     helpStr += "   " + prefix + str(command) + " \n"
                 
                 helpStr +=          " \n"
-                helpStr +=          "Um mehr Informationen zu einem Befehl zu erhalten, einfach \n"
+                helpStr +=          "For more info on a command, use \n"
                 helpStr += "   " + prefix + "commands <name of command> \n"
-                helpStr +=          "ohne das Prefix des gewünschten Befehls eingeben. \n"
+                helpStr +=          "without the prefix of <name of command>. \n"
                 helpStr +=          "```" 
                 
                 
@@ -1396,22 +1396,22 @@ class Controller(commands.Cog):
                 
                 if command in list(cmdDict):
                     
-                    helpStr =          "```Befehl " + prefix +command + ": ```"
+                    helpStr =          "```Command " + prefix +command + ": ```"
                     helpStr +=          cmdDict[command]
-                    helpStr +=          " ```Ende des Befehls. ```\n"
+                    helpStr +=          " ```End of Command. ```\n"
                     await user.send(helpStr)
                 
                 elif command in list(dmCmdDict):
                     
-                    helpStr =          "```Befehl " + prefix +command + ": ```"
+                    helpStr =          "```Command " + prefix +command + ": ```"
                     helpStr +=          dmCmdDict[command]
-                    helpStr +=          " ```Ende des Befehls. ```\n"
+                    helpStr +=          " ```End of Command. ```\n"
                     await user.send(helpStr)
                     
                 else:
-                    await self.notify(message.channel, "{} dieser Befehl existiert nicht.".format(user.mention))
+                    await self.notify(message.channel, "{} Command does not exist.".format(user.mention))
             else:
-                await self.notify(message.channel, "{} dieser Befehl existiert nicht.".format(user.mention))
+                await self.notify(message.channel, "{} Command does not exist.".format(user.mention))
         await message.delete()
     
     
