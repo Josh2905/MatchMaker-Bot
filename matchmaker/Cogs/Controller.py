@@ -182,13 +182,14 @@ class Controller(commands.Cog):
         :param key: Key value of settings file
         :param value: Corresponding value 
         :param customCmd: if it is a custom command or not.
+        :param customDmCmd: if it is a custom DM command or not.
         '''
         with open(self.SETTINGS_FILE, "r+") as read_file:
             data = json.load(read_file)
             
             server = str(_server)
             
-            # add new setting to data, if missing
+            # add new server to data, if missing
             if server not in list(data):
                 newEntry = {}
                 data[server] = newEntry
@@ -225,7 +226,9 @@ class Controller(commands.Cog):
             self._print(_server, "Settings updated: " + str(key) + " = " + str(value), cog=self.COG_NAME)
                        
     def get_setting(self, server, key):
-        ''' Gets setting value from global settings dict.
+        ''' Gets setting value from settings dict.
+        
+        Will return int if castable.
         
         :param server: Server ID
         :param key: Key of Setting
@@ -245,7 +248,7 @@ class Controller(commands.Cog):
         return value
         
     def is_command(self, cmd, server):
-        '''Return, if a command with this name exists.
+        '''Return true, if a command with this name exists.
         
         :param cmd: Command name
         :param server: Server ID
@@ -261,7 +264,7 @@ class Controller(commands.Cog):
         return False
     
     def is_custom_command(self, cmd, server):
-        '''Return, if a custom command with this name exists.
+        '''Return true, if a custom command with this name exists.
         
         :param cmd: Command name
         :param server: Server ID
@@ -277,7 +280,7 @@ class Controller(commands.Cog):
         return False
     
     def is_custom_dmcommand(self, cmd, server):
-        '''Return, if a custom dmcommand with this name exists.
+        '''Return true, if a custom dmcommand with this name exists.
         
         :param cmd: Command name
         :param server: Server ID
@@ -295,6 +298,8 @@ class Controller(commands.Cog):
     async def checkPermissions(self, user, channel, creator=False):
         '''Returns, wether the user has permission to use the bots advanced features.
         
+        Right now only supports admin flag and creator.
+        
         :param user: User to be checked
         :param channel: channel the answer will be posted to
         :param creator: True, if only the creator has access
@@ -311,7 +316,7 @@ class Controller(commands.Cog):
     def is_me(self, m):
         '''Checks if bot is the author of a message.
         
-        :param m: message to be checked.a
+        :param m: message to be checked.
         '''
         return m.author == self.bot.user
         # block folding shit
@@ -635,6 +640,7 @@ class Controller(commands.Cog):
         message = ctx.message
         server = message.guild.id
         
+        
         repost = False
         cleanup = [message]
         
@@ -657,12 +663,12 @@ class Controller(commands.Cog):
                         if len(args[1]) == 1:
                             
                             self.update_settings(server, 'PREFIX', args[1])
-                            error = "{} das Prefix wurde aktualisiert. neues Prefix: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "\""
+                            error = "{} Prefix updated. New prefix: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "\""
                         
                         else:
-                            error = "{} das Prefix muss aus einem Zeichen bestehen. Beispiel: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set prefix !\""
+                            error = "{} The prefix has to be a single character. Example: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set prefix !\""
                     else:
-                        error = "{} falche Anzahl von Argumenten. Beispiel: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set prefix !\""
+                        error = "{} Wrong number of arguments. Example: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set prefix !\""
                 
                 
                 
@@ -670,7 +676,7 @@ class Controller(commands.Cog):
                 elif args[0] == 'message' :
                     if len(args) == 1:
                         # no arguments given
-                        error = "{} fehlendes Argument. Mögliche Argumente: content, timer, interval".format(user.mention) 
+                        error = "{} Missing argument. Possible arguments: content, timer, interval".format(user.mention) 
                     
                     
                     elif args[1] == 'content':
@@ -679,7 +685,7 @@ class Controller(commands.Cog):
                         #===============================================================
                         self.SERVER_VARS[server].cmdLockout.append(user)
                         
-                        botPrompt = await message.channel.send("{} Deine nächste Nachricht in diesem Kanal wird als Bot-Hauptnachricht übernommen. \nUm den Vorgang abzubrechen, einfach mit \"stop\" antworten.".format(user.mention))
+                        botPrompt = await message.channel.send("{} Your next message in this channel will be saved as the new main MatchMaking message.\n Reply with \"stop\" to abort.".format(user.mention))
                         
                         def check_1(m):
                             return m.author == user and m.channel == message.channel
@@ -702,14 +708,14 @@ class Controller(commands.Cog):
                                     
                                     repost = True
                                     
-                                    error = "{} die Nachricht wurde aktualisiert.".format(user.mention)
+                                    error = "{} Main message updated.".format(user.mention)
                                 
                                 else:
-                                    error = "{} die Nachricht wurde nicht aktualisiert.".format(user.mention)
+                                    error = "{} Process aborted, main message not updated.".format(user.mention)
                             else:
-                                error = "{} die Nachricht darf nicht mit \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "\" beginnen."
+                                error = "{} The message cannot start with \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "\"."
                         else:
-                            error = "{} die Anfrage ist nicht rechtzeitig beantwortet worden.".format(user.mention)
+                            error = "{} Process aborted, request timed out.".format(user.mention)
                     
                     elif args[1] == 'timer':
                         #===============================================================
@@ -725,12 +731,12 @@ class Controller(commands.Cog):
                                 
                                 timeStr = str(datetime.timedelta(seconds=timeInSeconds))
                                                             
-                                error = "{} das Zeitintervall wurde aktualisiert. Neuer post ab jetzt immer in ".format(user.mention) + timeStr
+                                error = "{} Time interval updated. New main message will be posted every ".format(user.mention) + timeStr
                             
                             except ValueError:
-                                error = "{} die Zeit muss als Zahl in Sekunden angegeben werden. Beispiel: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set message timer 600\""
+                                error = "{} Time has to be in seconds. Example: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set message timer 600\""
                         else:
-                            error = "{} falche Anzahl von Argumenten. Beispiel: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set message timer 600\""
+                            error = "{} Wrong number of arguments. Example: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set message timer 600\""
                     
                     
                     elif args[1] == 'interval':
@@ -747,14 +753,14 @@ class Controller(commands.Cog):
                                 
                                 repost = True
                                 
-                                error = "{} das Intervall wurde aktualisiert. Neuer Post ab jetzt immer in ".format(user.mention) + str(count) + " Nachrichten."
+                                error = "{} Message interval updated. New main message will be posted every ".format(user.mention) + str(count) + " messages."
                             
                             except ValueError:
-                                error = "{} bitte gebe eine Zahl an. Beispiel: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set message interval 20\""
+                                error = "{} Argument has to be a number. Example: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set message interval 20\""
                         else:
-                            error = "{} falche Anzahl von Argumenten. Beispiel: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set message interval 20\""
+                            error = "{} Wrong number of arguments. Example: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set message interval 20\""
                     else:
-                        error = "{} falsches Argument. Mögliche Argumente: content, timer, interval".format(user.mention)
+                        error = "{} Wrong argument. Possible arguments: content, timer, interval".format(user.mention)
                     
                 
                 
@@ -765,19 +771,19 @@ class Controller(commands.Cog):
                     #===============================================================
                     
                     if len(args) == 1:
-                        error = "{} fehlendes Argument. Mögliche Argumente: 1vs1, 2vs2".format(user.mention)
+                        error = "{} Missing argument. Possible arguments: 1vs1, 2vs2".format(user.mention)
                          
                     elif args[1] == '1vs1':
-                        react1vs1 = await message.channel.send("{} bitte reagiere mit der gewünschten 1vs1 Reaktion.".format(user.mention))
+                        react1vs1 = await message.channel.send("{} Please react with the 1vs1 Reaction of your choice.".format(user.mention))
                         self.SERVER_VARS[server].msg1vs1 = react1vs1
                         
                     elif args[1] == '2vs2':
-                        react2vs2 = await message.channel.send("{} bitte reagiere mit der gewünschten 2vs2 Reaktion.".format(user.mention))
+                        react2vs2 = await message.channel.send("{} Please react with the 2vs2 Reaction of your choice.".format(user.mention))
                         self.SERVER_VARS[server].msg2vs2 = react2vs2
                         
                         # the rest of the implementation can be found in on_reaction_add
                     else:
-                        error = "{} fehlerhafte Argumente. Mögliche Argumente: 1vs1, 2vs2".format(user.mention) 
+                        error = "{} Wrong argument. Possible arguments: 1vs1, 2vs2".format(user.mention) 
                 
                 
                 
@@ -788,9 +794,9 @@ class Controller(commands.Cog):
                     #===============================================================
                                     
                     if len(args) == 1:
-                        error = "{} fehlendes Argument. Mögliche Argumente: 1vs1, 2vs2, timeout".format(user.mention)
+                        error = "{} Missing argument. Possible arguments: 1vs1, 2vs2, timeout".format(user.mention)
                     elif len(args) == 2 and (args[1] == '1vs1' or args[1] == '2vs2'):
-                        error = "{} fehlendes Argument. bitte gebe den Namen der Rolle an. Beispiel: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set role 1vs1 rollenname\""
+                        error = "{} Missing argument. Please input the name of a Role. Example: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set role 1vs1 rolename\""
                          
                     elif args[1] == '1vs1':
                         
@@ -815,13 +821,13 @@ class Controller(commands.Cog):
                                 
                                 self.update_settings(server, 'ROLE_1VS1', roleName)
                                 
-                                error = "{} neue Rolle für 1vs1 gespeichert: ".format(user.mention) + str(self.get_setting(server, 'ROLE_1VS1'))
+                                error = "{} Updated 1vs1 role: ".format(user.mention) + str(self.get_setting(server, 'ROLE_1VS1'))
                                 
                             else:
-                                error = "{} Rolle existiert nicht.".format(user.mention)
+                                error = "{} Role does not exist.".format(user.mention)
                         
                         else:
-                            error = "{} 1vs1 und 2vs2 dürfen nicht die gleiche Rolle haben.".format(user.mention)
+                            error = "{} 1vs1 and 2vs2 cannot have the same role.".format(user.mention)
                             
                     elif args[1] == '2vs2':
                         
@@ -845,12 +851,12 @@ class Controller(commands.Cog):
                                 
                                 self.update_settings(server, 'ROLE_2VS2', roleName)
                                 
-                                error = "{} neue Rolle für 2vs2 gespeichert: ".format(user.mention) + str(self.get_setting(server, 'ROLE_2VS2'))
+                                error = "{} Updated 2vs2 role: ".format(user.mention) + str(self.get_setting(server, 'ROLE_2VS2'))
                                 
                             else:
-                                error = "{} Rolle existiert nicht.".format(user.mention)
+                                error = "{} Role does not exist.".format(user.mention)
                         else:
-                            error = "{} 1vs1 und 2vs2 dürfen nicht die gleiche Rolle haben.".format(user.mention)
+                            error = "{} 1vs1 and 2vs2 cannot have the same role.".format(user.mention)
                         
                     elif args[1] == 'timeout':
                         if len(args) == 3 :
@@ -864,15 +870,15 @@ class Controller(commands.Cog):
                                 
                                 repost = True
                                 
-                                error = "{} das Zeitintervall wurde aktualisiert. Rollen werden nun wieder entfernt nach: ".format(user.mention) + timeStr
+                                error = "{} Time Interval updated. Roles will be removed after: ".format(user.mention) + timeStr
                             
                             except ValueError:
-                                error = "{} die Zeit muss als Zahl in Sekunden angegeben werden. Beispiel: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set role timeout 600\""
+                                error = "{} Time has to be in seconds. Example: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set role timeout 600\""
                                             
                         else:
-                            error = "{} fehlerhafte Argumente. Beispiel: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set role timeout 600\""
+                            error = "{} Wrong arguments. Example: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set role timeout 600\""
                     else:
-                        error = "{} fehlerhafte Argumente. Mögliche Argumente: 1vs1, 2vs2, timeout".format(user.mention)
+                        error = "{} Wrong argument. Possible arguments 1vs1, 2vs2, timeout".format(user.mention)
                 
                 
                 
@@ -880,9 +886,9 @@ class Controller(commands.Cog):
                 elif args[0] == 'checkinterval':
                     
                     if len(args) == 1:
-                        error = "{} fehlendes Argument. Mögliche Argumente: roles, message".format(user.mention)
+                        error = "{} Missing argument. Possible arguments: roles, message".format(user.mention)
                     elif not len(args) == 3:
-                        error = "{} fehlerhafte Argumente. Beispiel: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set checkinterval roles 60\""
+                        error = "{} Wrong arguments. Example: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set checkinterval roles 60\""
                         
                     elif args[1] == 'roles':
                         #===============================================================
@@ -896,10 +902,10 @@ class Controller(commands.Cog):
                             
                             timeStr = str(datetime.timedelta(seconds=timeInSeconds))
                                                     
-                            error = "{} das Zeitintervall wurde aktualisiert. Vergebene Rollen werden nun alle ".format(user.mention) + timeStr + " überprüft."
+                            error = "{} Time interval updated. Roles will be checked every ".format(user.mention) + timeStr + "."
                         
                         except ValueError:
-                            error = "{} die Zeit muss als Zahl in Sekunden angegeben werden. Beispiel: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set checkinterval roles 60\""
+                            error = "{} Time has to be in seconds. Example: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set checkinterval roles 60\""
                                        
                         
                     elif args[1] == 'message':
@@ -914,13 +920,13 @@ class Controller(commands.Cog):
                             
                             timeStr = str(datetime.timedelta(seconds=timeInSeconds))
                                                     
-                            error = "{} das Zeitintervall wurde aktualisiert. Es wird nun alle ".format(user.mention) + timeStr + " überprüft, ob eine neue Nachricht gepostet werden muss."
+                            error = "{} Time interval updated. The bot will check every ".format(user.mention) + timeStr + " ,if enough time has passed to post a new message."
                         
                         except ValueError:
-                            error = "{} die Zeit muss als Zahl in Sekunden angegeben werden. Beispiel: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set checkinterval roles 60\""
+                            error = "{} Time has to be in seconds. Example: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set checkinterval roles 60\""
                                 
                     else:
-                        error = "{} fehlerhafte Argumente. Mögliche Argumente: roles, message".format(user.mention) 
+                        error = "{} Wrong argument. Possible arguments: roles, message".format(user.mention) 
                     
                 elif args[0] == 'command':
                     #===============================================================
@@ -934,7 +940,7 @@ class Controller(commands.Cog):
                         
                         if command not in self.SERVER_COMMANDS:
                         
-                            botPrompt = await message.channel.send("{} Deine nächste Nachricht in diesem Kanal wird als Antwort auf den Befehl \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + command + "\" übernommen.\nUm den Vorgang abzubrechen, einfach mit \"stop\" antworten. \nUm einen alten Befehl zu entfernen, mit \"delete\" antworten.")
+                            botPrompt = await message.channel.send("{} Your next message in this channel will be used as the bot-reply to the command \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + command + "\".\nReply with \"stop\" to abort. \nReply with \"delete\" to remove an old command.")
                             
                             def check_2(m):
                                 return m.author == user and m.channel == message.channel
@@ -955,18 +961,18 @@ class Controller(commands.Cog):
                                         # update settings
                                         self.update_settings(server, 'COMMANDS', newMessage.content, customCmd=command)
                                                                             
-                                        error = "{} der Befehl \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + command + "\" wurde aktualisiert."
+                                        error = "{} Command \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + command + "\" updated."
                                     
                                     else:
-                                        error = "{} der Befehl wurde nicht aktualisiert.".format(user.mention)
+                                        error = "{} Command was not updated.".format(user.mention)
                                 else:
-                                    error = "{} die Nachricht darf nicht mit \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "\" beginnen."
+                                    error = "{} Reply cannot start with \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "\"."
                             else:
-                                error = "{} die Anfrage ist nicht rechtzeitig beantwortet worden.".format(user.mention)
+                                error = "{} Request timed out.".format(user.mention)
                         else:
-                            error = "{} dieser Befehl ist reserviert und kann nicht gesetzt werden.".format(user.mention)
+                            error = "{} This Command is already used by the bot.".format(user.mention)
                     else:
-                        error = "{} falche Anzahl von Argumenten. Beispiel: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set command beispielBefehl\""
+                        error = "{} Wrong arguments. Example: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set command exampleCommand\""
                     
                 
                 elif args[0] == 'dmcommand':
@@ -981,7 +987,7 @@ class Controller(commands.Cog):
                         
                         if command not in self.SERVER_COMMANDS:
                         
-                            botPrompt = await message.channel.send("{} Deine nächste Nachricht in diesem Kanal wird als Antwort (Private Nachricht) auf den Befehl \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + command + "\" übernommen.\nUm den Vorgang abzubrechen, einfach mit \"stop\" antworten. \nUm einen alten Befehl zu entfernen, mit \"delete\" antworten.")
+                            botPrompt = await message.channel.send("{} Your next message in this channel will be used as the (direct message) bot-reply to the command \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + command + "\" Reply with \"stop\" to abort. \nReply with \"delete\" to remove an old command.")
                             
                             def check_3(m):
                                 return m.author == user and m.channel == message.channel
@@ -1002,31 +1008,32 @@ class Controller(commands.Cog):
                                         # update settings
                                         self.update_settings(server, 'DM_COMMANDS', newMessage.content, customDmCmd=command)
                                                                             
-                                        error = "{} der Befehl \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + command + "\" wurde aktualisiert."
+                                        error = "{} Command \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + command + "\" updated."
                                     
                                     else:
-                                        error = "{} der Befehl wurde nicht aktualisiert.".format(user.mention)
+                                        error = "{} Command was not updated.".format(user.mention)
                                 else:
-                                    error = "{} die Nachricht darf nicht mit \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "\" beginnen."
+                                    error = "{} Reply cannot start with \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "\"."
                             else:
-                                error = "{} die Anfrage ist nicht rechtzeitig beantwortet worden.".format(user.mention)
+                                error = "{} Request timed out.".format(user.mention)
                         else:
-                            error = "{} dieser Befehl ist reserviert und kann nicht gesetzt werden.".format(user.mention)
+                            error = "{} This Command is already used by the bot.".format(user.mention)
                     else:
-                        error = "{} falche Anzahl von Argumenten. Beispiel: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set dmcommand beispielBefehl\""
+                        error = "{} Wrong arguments. Example: \"".format(user.mention) + str(self.get_setting(server, 'PREFIX')) + "set dmcommand beispielBefehl\""
                     
                 
                     
                 else:
-                    error = "{} fehlerhafte Argumente. Mögliche Argumente: prefix, message, reaction, role, checkinterval, command, dmcommand".format(user.mention)
+                    error = "{} Wrong argument. Possible arguments: prefix, message, reaction, role, checkinterval, command, dmcommand".format(user.mention)
             else:
                 # TODO help here
-                error = "{} zu wenig Argumente. Mögliche Argumente: prefix, message, reaction, role, checkinterval, command, dmcommand".format(user.mention)
+                error = "{} Missing argument. Possible arguments:: prefix, message, reaction, role, checkinterval, command, dmcommand".format(user.mention)
             
             # notify error, if one occured
             if not error == "":
                 await self.notify(message.channel, error, 5)    
         
+        #cleanup
         if len(cleanup) > 1:
             await message.channel.delete_messages(cleanup)
         elif len(cleanup) == 1:
