@@ -2,7 +2,7 @@
 Created on 25.02.2019
 
 @author: Joshua Esselmann
-@version: 1.2.1
+@version: 1.2.2
 '''
 
 import json
