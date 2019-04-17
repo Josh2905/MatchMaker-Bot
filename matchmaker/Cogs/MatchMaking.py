@@ -32,8 +32,8 @@ class MatchMaking(commands.Cog):
             self.lastMsgStack = deque(maxlen=10)
             
             #bools to keep track of running coroutines
-            self.checkTimeout = False
-            self.repostMessage = False
+            self.checkTimeoutFuture = None
+            self.repostMessageFuture = None
             
     # non persistent server variables
     SERVER_VARS = {}
@@ -342,27 +342,42 @@ class MatchMaking(commands.Cog):
         '''
         
         def callback_checkTimeout(serverID, task):
-            self.SERVER_VARS[serverID].checkTimeout = False
-            self.controller._print(server.id, "checkTimeout coro stopped \n!\n!\n!", cog=self.COG_NAME)
-        def callback_repostMessage(serverID, task):
-            self.SERVER_VARS[serverID].repostMessage = False
-            self.controller._print(server.id, "repostMessage coro stopped \n!\n!\n!", cog=self.COG_NAME)
+            if serverID in self.SERVER_VARS:
+                # coro stopped unexpectedly, restart it
+                self.controller._print(serverID, "checkTimeout coro stopped unexpectedly \n!\n!\n!\nrestarting...", cog=self.COG_NAME)
+                future = self.bot.loop.create_task(self.checkTimeout(server.id))
+                future.add_done_callback(partial(callback_checkTimeout, server.id))
+                self.SERVER_VARS[serverID].checkTimeoutFuture = future
+                self.controller._print(serverID, "checkTimeout coro created.", cog=self.COG_NAME)
+            else:
+                # coro stopped because server doesnt exist anymore
+                self.controller._print(serverID, "checkTimeout coro stopped.", cog=self.COG_NAME)
         
+        def callback_repostMessage(serverID, task):
+            if serverID in self.SERVER_VARS:
+                # coro stopped unexpectedly, restart it
+                self.controller._print(serverID, "repostMessage coro stopped unexpectedly \n!\n!\n!\nrestarting...", cog=self.COG_NAME)
+                future = self.bot.loop.create_task(self.repostMessage(server.id))
+                future.add_done_callback(partial(callback_repostMessage, server.id))
+                self.SERVER_VARS[serverID].repostMessageFuture = future
+                self.controller._print(serverID, "repostMessage coro created.", cog=self.COG_NAME)
+            else:
+                # coro stopped because server doesnt exist anymore
+                self.controller._print(serverID, "repostMessage coro stopped.", cog=self.COG_NAME)
+            
         # add looped tasks to bot.
-        if not self.SERVER_VARS[server.id].checkTimeout:
+        if self.SERVER_VARS[server.id].checkTimeoutFuture is None:
             future1 = self.bot.loop.create_task(self.checkTimeout(server.id))
             future1.add_done_callback(partial(callback_checkTimeout, server.id))
-            self.SERVER_VARS[server.id].checkTimeout = True
+            self.SERVER_VARS[server.id].checkTimeoutFuture = future1
             self.controller._print(server.id, "checkTimeout coro created", cog=self.COG_NAME)
         
-        if not self.SERVER_VARS[server.id].repostMessage:
+        if self.SERVER_VARS[server.id].repostMessageFuture is None:
             future2 = self.bot.loop.create_task(self.repostMessage(server.id))
             future2.add_done_callback(partial(callback_repostMessage, server.id))
-            self.SERVER_VARS[server.id].repostMessage = True
+            self.SERVER_VARS[server.id].repostMessageFuture = future2
             self.controller._print(server.id, "repostMessage coro created", cog=self.COG_NAME)
         
-        if True:
-            pass
 
     #===============================================================================
     # called in on_ready of controller  
@@ -485,11 +500,11 @@ class MatchMaking(commands.Cog):
     @commands.Cog.listener()
     async def on_guild_remove(self, server):
         '''Removes leaving servers from the SERVER_VARS dict and settings file.'''
-        
-        self.controller._print(server.id,  "SERVER REMOVED", cog=self.COG_NAME)
         # remove server from global var dict
-        
-        self.SERVER_VARS.pop(server.id, None)
+        serverNode = self.SERVER_VARS.pop(server.id, None)
+        serverNode.checkTimeoutFuture.cancel()
+        serverNode.repostMessageFuture.cancel()
+        self.controller._print(server.id,  "SERVER REMOVED", cog=self.COG_NAME)
     
     @commands.Cog.listener()
     async def on_message(self, message):

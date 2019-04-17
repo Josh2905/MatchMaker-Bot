@@ -26,7 +26,7 @@ class Controller(commands.Cog):
             self.id = _id
             
             #bools to keep track of running coroutines
-            self.commandTimeout = False
+            self.commandTimeoutFuture = None
             
             self.cmdLockout = []
             
@@ -378,15 +378,27 @@ class Controller(commands.Cog):
         '''
         
         def callback_commandTimeout(serverID, task):
-            self.SERVER_VARS[serverID].commandTimeout = False
-            self._print(server.id, "commandTimeout coro stopped \n!\n!\n!", cog=self.COG_NAME)
+            
+            if serverID in self.SERVER_VARS:
+                # coro stopped unexpectedly, restart it
+                self._print(serverID, "commandTimeout coro stopped unexpectedly \n!\n!\n!\nrestarting...", cog=self.COG_NAME)
+                future = self.bot.loop.create_task(self.commandTimeout(server.id))
+                future.add_done_callback(partial(callback_commandTimeout, server.id))
+                self.SERVER_VARS[serverID].commandTimeoutFuture = future
+                self._print(serverID, "commandTimeout coro created.", cog=self.COG_NAME)
+            else:
+                # coro stopped because server doesnt exist anymore
+                self._print(serverID, "commandTimeout coro stopped.", cog=self.COG_NAME)
+            
+            
         
         # add looped tasks to bot.
-           
-        if not self.SERVER_VARS[server.id].commandTimeout:
-            future3 = self.bot.loop.create_task(self.commandTimeout(server.id))
-            future3.add_done_callback(partial(callback_commandTimeout, server.id))
-            self.SERVER_VARS[server.id].commandTimeout = True
+        if self.SERVER_VARS[server.id].commandTimeoutFuture is None:
+            future = self.bot.loop.create_task(self.commandTimeout(server.id))
+            future.add_done_callback(partial(callback_commandTimeout, server.id))
+            
+            self.SERVER_VARS[server.id].commandTimeoutFuture = future
+                
             self._print(server.id, "commandTimeout coro created", cog=self.COG_NAME)
         
         if True:
@@ -477,14 +489,15 @@ class Controller(commands.Cog):
         self._print(server.id,  "SERVER REMOVED", cog=self.COG_NAME)
         # remove server from global var dict
         
-        self.SERVER_VARS.pop(server.id, None)
+        serverNode = self.SERVER_VARS.pop(server.id, None)
         
+        serverNode.commandTimeoutFuture.cancel()
         # remove server from save file
         with open(self.SETTINGS_FILE, "r+") as read_file:
             data = json.load(read_file)
             
-            if server.id in list(data):
-                del data[server.id]
+            if str(server.id) in list(data):
+                del data[str(server.id)]
                 
             read_file.seek(0)
             json.dump(data, read_file, indent=4)
@@ -1336,9 +1349,19 @@ class Controller(commands.Cog):
         
         user = ctx.message.author
         message = ctx.message
+        server = ctx.message.guild
         
         if await self.checkPermissions(user, message.channel, creator=True):
             print("DEBUG")
+            self.SERVER_VARS[server.id].commandTimeoutFuture.cancel()
+            
+            mm = self.bot.get_cog("MatchMaking")
+            mm.SERVER_VARS[server.id].checkTimeoutFuture.cancel()
+            
+            print(mm.SERVER_VARS[server.id].repostMessageFuture)
+            
+            mm.SERVER_VARS[server.id].repostMessageFuture.cancel()
+            
             await message.delete()
 
     @commands.command()

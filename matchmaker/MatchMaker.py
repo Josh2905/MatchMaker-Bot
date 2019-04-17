@@ -53,7 +53,7 @@ class MatchMaker(commands.Bot):
   
 SETTINGS_FILE = 'settings.json'
 TOKEN_FILE = 'token.txt'
-EXTENSIONS = ["Cogs.Controller", "Cogs.MatchMaking", "Cogs.Misc", "Cogs.CoinTournament"]
+EXTENSIONS = ["Cogs.Controller", "Cogs.MatchMaking", "Cogs.Misc", "Cogs.CoinTournament", "Cogs.DiscordBotsOrgAPI"]
 
 def get_prefix(bot, message):
     '''This method enables the use of custom Prefixes set by the user.
