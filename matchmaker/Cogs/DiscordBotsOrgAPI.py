@@ -26,17 +26,18 @@ class DiscordBotsOrgAPI(commands.Cog):
             with open(self.TOKEN_FILE) as f:
                 self.token = f.readline()
         
-            self.dblpy = dbl.Client(self.bot, self.token)
-            self.bot.loop.create_task(self.update_stats())
+            self.dblpy = dbl.Client(self.bot, self.token, loop=self.bot.loop)
         else:
             self.controller._print("DBL_API",'Not loaded.', cog=self.COG_NAME)
     
-    
+    @commands.Cog.listener()
+    async def on_ready(self):
+        self.bot.loop.create_task(self.update_stats())
     
     async def update_stats(self):
         """This function runs every 30 minutes to automatically update your server count"""
 
-        while True:
+        while not self.bot.is_closed():
             self.controller._print("DBL_API",'attempting to post server count', cog=self.COG_NAME)
             try:
                 await self.dblpy.post_server_count()
