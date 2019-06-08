@@ -18,6 +18,8 @@ class DiscordBotsOrgAPI(commands.Cog):
     TOKEN_FILE = "dbl_token.txt"
     COG_NAME = "DiscordBotsOrgAPI"
     
+    initialized = False
+    
     def __init__(self, bot):
         self.bot = bot
         self.controller = self.bot.get_cog('Controller')
@@ -32,7 +34,10 @@ class DiscordBotsOrgAPI(commands.Cog):
     
     @commands.Cog.listener()
     async def on_ready(self):
-        self.bot.loop.create_task(self.update_stats())
+        if self.initialized == False:
+            self.bot.loop.create_task(self.update_stats())
+            self.initialized = True
+            
     
     async def update_stats(self):
         """This function runs every 30 minutes to automatically update your server count"""
