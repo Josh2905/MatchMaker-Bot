@@ -45,6 +45,11 @@
         "PREFIX": "?",
         "ROLE_1VS1": "1",
         "ROLE_2VS2": "2",
+        "ROLE_TIMEOUT": 30,
+        "MESSAGE_REPOST_TIME": 20,
+        "CHECK_INTERVAL_REPOST": 5,
+        "CHECK_INTERVAL_ROLES": 5,
+        "MESSAGE_INTERVAL": 5,
         "MAINCHANNEL": 550766632939814912
     }
 }

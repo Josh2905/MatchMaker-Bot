@@ -404,16 +404,17 @@ class MatchMaking(commands.Cog):
                 
                 channel = self.bot.get_channel(self.controller.get_setting(server.id, 'MAINCHANNEL'))
                 
-                # delete old messages
-                self.controller._print(server.id,'Purge old messages', cog=self.COG_NAME)
-                await channel.purge(limit=100, check=self.controller.is_me)
-                
-                
-                # post new message
-                self.controller._print(server.id,'Post message', cog=self.COG_NAME)
-                msg = await self.postMessage(channel)
-                if msg is not None:
-                    self.SERVER_VARS[server.id].lastMsgStack.append(msg.id)
+                if(channel):
+                    # delete old messages
+                    self.controller._print(server.id,'Purge old messages', cog=self.COG_NAME)
+                    await channel.purge(limit=100, check=self.controller.is_me)
+                    
+                    
+                    # post new message
+                    self.controller._print(server.id,'Post message', cog=self.COG_NAME)
+                    msg = await self.postMessage(channel)
+                    if msg is not None:
+                        self.SERVER_VARS[server.id].lastMsgStack.append(msg.id)
                 
             else:
                 self.controller._print(server.id,"Matchmaking not fully set up", cog=self.COG_NAME)

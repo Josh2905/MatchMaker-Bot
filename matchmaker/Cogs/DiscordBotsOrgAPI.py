@@ -31,6 +31,7 @@ class DiscordBotsOrgAPI(commands.Cog):
             self.dblpy = dbl.Client(self.bot, self.token, loop=self.bot.loop)
         else:
             self.controller._print("DBL_API",'Not loaded.', cog=self.COG_NAME)
+            self.initialized = True
     
     @commands.Cog.listener()
     async def on_ready(self):
